@@ -47,8 +47,13 @@ impl State {
         display::header(w)?;
 
         self.mode.emit_mode(w)?;
+
         let possible_cmds = self.mode.get_possible_cmds();
+        queue!(w, cursor::MoveToNextLine(1))?;
+        display::emit_line(w, "List of possible commands:")?;
+        queue!(w, cursor::MoveToNextLine(1))?;
         display::emit_iter(w, possible_cmds.iter())?;
+
         w.flush()?;
 
         match io::wait_for_char()? {
@@ -102,10 +107,10 @@ impl State {
         )?;
         w.flush()?;
 
-        for (i, color) in COMP_COLORS.iter().enumerate() {
+        for color_group in COMP_COLORS.iter() {
             queue!(
                 w,
-                Print(format!("{}: {}", i, color)),
+                Print(format!("{}", color_group)),
                 cursor::MoveToNextLine(1),
             )?;
         }

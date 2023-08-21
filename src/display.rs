@@ -10,7 +10,7 @@ use crossterm::{
 };
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
-    queue!(w, Print(line))?;
+    queue!(w, Print(line), cursor::MoveToNextLine(1))?;
     Ok(())
 }
 
@@ -18,6 +18,7 @@ pub fn header<W: Write>(w: &mut W) -> Result<()> {
     emit_line(w, "--------------------")?;
     emit_line(w, " TUI Bricks")?;
     emit_line(w, "--------------------")?;
+    queue!(w, cursor::MoveToNextLine(1))?;
     Ok(())
 }
 

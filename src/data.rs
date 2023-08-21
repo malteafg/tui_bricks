@@ -104,7 +104,7 @@ impl Database {
         let raw_data = crate::io::read_database_from_path(&db_path)?;
         Ok(Self { raw_data, db_path })
     }
-    ///
+
     /// Creates a new state with a database from the given path.
     pub fn _from_path<P>(_path: P) -> Result<Self>
     where
