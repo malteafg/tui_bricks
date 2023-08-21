@@ -12,6 +12,8 @@ pub enum Error {
 
     #[error("part not found: {part_id}")]
     PartNotFound { part_id: u32 },
+    #[error("part already exists in database: {part_id}")]
+    PartExists { part_id: u32 },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

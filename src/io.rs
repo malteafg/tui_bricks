@@ -2,6 +2,13 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crossterm::{
+    cursor,
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    execute, queue,
+    style::{Print, ResetColor},
+    terminal::{self, ClearType},
+};
 use directories::ProjectDirs;
 
 use crate::data::Database;
@@ -28,22 +35,32 @@ pub fn get_default_database_path() -> Result<PathBuf> {
     }
 }
 
-pub fn read_database_from_path<P>(path: P) -> Result<Database>
-where
-    P: AsRef<Path>,
-{
+pub fn read_database_from_path<P: AsRef<Path>>(path: P) -> Result<Database> {
     let file = fs::File::open(path)?;
     let database = serde_yaml::from_reader(file)?;
     Ok(database)
 }
 
-pub fn write_database_to_path<P>(path: P, database: &Database) -> Result<()>
-where
-    P: AsRef<Path>,
-{
+pub fn write_database_to_path<P: AsRef<Path>>(path: P, database: &Database) -> Result<()> {
     let file = fs::File::create(path)?;
     serde_yaml::to_writer(file, database)?;
     Ok(())
+}
+
+pub fn wait_for_char() -> Result<char> {
+    terminal::enable_raw_mode()?;
+    loop {
+        if let Ok(Event::Key(KeyEvent {
+            code: KeyCode::Char(c),
+            kind: KeyEventKind::Press,
+            modifiers: _,
+            state: _,
+        })) = event::read()
+        {
+            terminal::disable_raw_mode()?;
+            return Ok(c);
+        }
+    }
 }
 
 #[cfg(test)]

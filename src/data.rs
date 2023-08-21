@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum ColorGroup {
     All,
     Basic,
@@ -29,7 +29,7 @@ impl fmt::Display for ColorGroup {
 use ColorGroup::*;
 pub const COMP_COLORS: [ColorGroup; 6] = [All, Basic, Nature, Grey, Road, Translucent];
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Item {
     id: u32,
     alternative_ids: Vec<u32>,
