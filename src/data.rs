@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::path::{Path, PathBuf};
+
+use crate::error::{Error, Result};
+use crate::io;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum ColorGroup {
@@ -70,11 +74,11 @@ impl fmt::Display for Item {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Database {
+pub struct RawDatabase {
     items: Vec<Item>,
 }
 
-impl core::ops::Deref for Database {
+impl core::ops::Deref for RawDatabase {
     type Target = Vec<Item>;
 
     fn deref(self: &'_ Self) -> &'_ Self::Target {
@@ -82,9 +86,67 @@ impl core::ops::Deref for Database {
     }
 }
 
-impl core::ops::DerefMut for Database {
+impl core::ops::DerefMut for RawDatabase {
     fn deref_mut(self: &'_ mut Self) -> &'_ mut Self::Target {
         &mut self.items
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct Database {
+    raw_data: RawDatabase,
+    db_path: PathBuf,
+}
+
+impl Database {
+    pub fn new() -> Result<Self> {
+        let db_path = crate::io::get_default_database_path()?;
+        let raw_data = crate::io::read_database_from_path(&db_path)?;
+        Ok(Self { raw_data, db_path })
+    }
+    ///
+    /// Creates a new state with a database from the given path.
+    pub fn _from_path<P>(_path: P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        todo!();
+    }
+
+    pub fn write(&self) -> Result<()> {
+        io::write_database_to_path(&self.db_path, &self.raw_data)
+    }
+
+    pub fn add_item(&mut self, item: Item) -> Result<()> {
+        if self.contains(item.get_id()) {
+            return Err(Error::PartExists {
+                part_id: item.get_id(),
+            });
+        }
+
+        self.raw_data.push(item);
+        self.write()?;
+
+        Ok(())
+    }
+
+    pub fn contains(&self, part_id: u32) -> bool {
+        for item in self.raw_data.iter() {
+            if item.get_id() == part_id {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn get_item(&self, part_id: u32) -> Option<&Item> {
+        for item in self.raw_data.iter() {
+            if item.get_id() == part_id {
+                return Some(&item);
+            }
+        }
+
+        None
     }
 }
 
@@ -94,7 +156,7 @@ pub mod tests {
     use std::str::FromStr;
 
     // Used for testing in io module
-    pub fn get_test_database() -> Database {
+    pub fn get_test_database() -> RawDatabase {
         let item1 = Item {
             id: 44,
             alternative_ids: vec![123, 1324],
@@ -109,7 +171,7 @@ pub mod tests {
             location: vec![(ColorGroup::All, String::from_str("B1A4").unwrap())],
         };
 
-        let test = Database {
+        let test = RawDatabase {
             items: vec![item1, item2],
         };
 

@@ -3,15 +3,12 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crossterm::{
-    cursor,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    execute, queue,
-    style::{Print, ResetColor},
-    terminal::{self, ClearType},
+    terminal,
 };
 use directories::ProjectDirs;
 
-use crate::data::Database;
+use crate::data::RawDatabase;
 use crate::error::Result;
 
 /// linux: /home/alice/.local/share/tui_bricks/database.yml
@@ -35,13 +32,13 @@ pub fn get_default_database_path() -> Result<PathBuf> {
     }
 }
 
-pub fn read_database_from_path<P: AsRef<Path>>(path: P) -> Result<Database> {
+pub fn read_database_from_path<P: AsRef<Path>>(path: P) -> Result<RawDatabase> {
     let file = fs::File::open(path)?;
     let database = serde_yaml::from_reader(file)?;
     Ok(database)
 }
 
-pub fn write_database_to_path<P: AsRef<Path>>(path: P, database: &Database) -> Result<()> {
+pub fn write_database_to_path<P: AsRef<Path>>(path: P, database: &RawDatabase) -> Result<()> {
     let file = fs::File::create(path)?;
     serde_yaml::to_writer(file, database)?;
     Ok(())

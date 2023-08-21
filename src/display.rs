@@ -4,9 +4,7 @@ use std::io::Write;
 use crate::{error::Result, state::Mode};
 
 use crossterm::{
-    cursor,
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    execute, queue,
+    cursor, queue,
     style::{Print, ResetColor},
     terminal::{self, ClearType},
 };

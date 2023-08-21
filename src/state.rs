@@ -1,13 +1,18 @@
-use std::path::{Path, PathBuf};
+use crossterm::{
+    cursor, execute, queue,
+    style::{Print, ResetColor},
+    terminal::{self, ClearType},
+};
 
 use crate::command::CmdList;
-use crate::data::{Database, Item};
-use crate::error::{Error, Result};
+use crate::data::{ColorGroup, Database, Item, COMP_COLORS};
+use crate::display;
+use crate::display::EmitMode;
+use crate::error::Result;
 use crate::io;
 
 pub struct State {
     db: Database,
-    db_path: PathBuf,
     mode: Mode,
 }
 
@@ -29,64 +34,141 @@ impl Mode {
 
 impl State {
     pub fn new() -> Result<Self> {
-        let db_path = io::get_default_database_path()?;
-        let db = io::read_database_from_path(&db_path)?;
+        let db = Database::new()?;
         let mode = Mode::Default {
             info: "Type any of the following characters to execute the associated command"
                 .to_owned(),
         };
-        Ok(Self { db, db_path, mode })
+        Ok(Self { db, mode })
     }
 
-    /// Creates a new state with a database from the given path.
-    pub fn _from_path<P>(_path: P) -> Result<Self>
+    pub fn accept_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<bool> {
+        display::clear(w)?;
+        display::header(w)?;
+
+        self.mode.emit_mode(w)?;
+        let possible_cmds = self.mode.get_possible_cmds();
+        display::emit_iter(w, possible_cmds.iter())?;
+        w.flush()?;
+
+        match io::wait_for_char()? {
+            'q' => {
+                execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
+                return Ok(true);
+            }
+            c => {
+                self.mode = self.execute_cmd(c, w)?;
+                return Ok(false);
+            }
+        };
+    }
+
+    fn execute_cmd<W: std::io::Write>(&mut self, char: char, w: &mut W) -> Result<Mode> {
+        match char {
+            'a' => self.add_part(w),
+            'p' => self.search_part(w),
+            _ => Ok(Mode::Default {
+                info: "executing command failed".to_owned(),
+            }),
+        }
+    }
+
+    fn add_part<W: std::io::Write>(&mut self, w: &mut W) -> Result<Mode> {
+        queue!(
+            w,
+            ResetColor,
+            terminal::Clear(ClearType::All),
+            cursor::MoveTo(0, 0),
+            Print("Enter ID of new part"),
+            cursor::MoveToNextLine(1),
+            cursor::Show,
+        )?;
+        w.flush()?;
+
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        let part_id: u32 = input.trim().parse()?;
+
+        queue!(
+            w,
+            ResetColor,
+            terminal::Clear(ClearType::All),
+            cursor::MoveTo(0, 0),
+            Print("Select a color group by typing its first letter"),
+            cursor::MoveToNextLine(1),
+            Print("(you can add more later)"),
+            cursor::MoveToNextLine(1),
+            cursor::Hide,
+        )?;
+        w.flush()?;
+
+        for (i, color) in COMP_COLORS.iter().enumerate() {
+            queue!(
+                w,
+                Print(format!("{}: {}", i, color)),
+                cursor::MoveToNextLine(1),
+            )?;
+        }
+        w.flush()?;
+
+        use ColorGroup::*;
+        let color_group = match io::wait_for_char()? {
+            'a' => All,
+            'b' => Basic,
+            'n' => Nature,
+            'g' => Grey,
+            'r' => Road,
+            't' => Translucent,
+            _ => todo!(),
+        };
+
+        queue!(
+            w,
+            ResetColor,
+            terminal::Clear(ClearType::All),
+            cursor::MoveTo(0, 0),
+            Print(format!("Enter location of group {}:", color_group)),
+            cursor::MoveToNextLine(1),
+            cursor::Show,
+        )?;
+        w.flush()?;
+
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        let part_loc = input.trim();
+
+        let new_item = Item::new(part_id, color_group, part_loc.to_owned());
+
+        self.db.add_item(new_item.clone())?;
+
+        Ok(Mode::DisplayItem { item: new_item })
+    }
+
+    fn search_part<W>(&self, w: &mut W) -> Result<Mode>
     where
-        P: AsRef<Path>,
+        W: std::io::Write,
     {
-        todo!();
-    }
+        queue!(
+            w,
+            ResetColor,
+            terminal::Clear(ClearType::All),
+            cursor::MoveTo(0, 0),
+            Print("Search for part by ID:"),
+            cursor::MoveToNextLine(1),
+            cursor::Show,
+        )?;
+        w.flush()?;
 
-    pub fn write(&self) -> Result<()> {
-        io::write_database_to_path(&self.db_path, &self.db)
-    }
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        let searched_id: u32 = input.trim().parse()?;
 
-    pub fn add_item(&mut self, item: Item) -> Result<()> {
-        if self.contains(item.get_id()) {
-            return Err(Error::PartExists {
-                part_id: item.get_id(),
-            });
+        if let Some(item) = self.db.get_item(searched_id) {
+            return Ok(Mode::DisplayItem { item: item.clone() });
         }
 
-        self.db.push(item);
-        self.write()?;
-
-        Ok(())
-    }
-
-    pub fn contains(&self, part_id: u32) -> bool {
-        for item in self.db.iter() {
-            if item.get_id() == part_id {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    pub fn get_item(&self, part_id: u32) -> Option<&Item> {
-        for item in self.db.iter() {
-            if item.get_id() == part_id {
-                return Some(&item);
-            }
-        }
-
-        None
-    }
-
-    pub fn get_mode(&self) -> &Mode {
-        &self.mode
-    }
-
-    pub fn set_mode(&mut self, mode: Mode) {
-        self.mode = mode;
+        Ok(Mode::Default {
+            info: format!("Part {} not found in database", searched_id),
+        })
     }
 }
