@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
@@ -13,7 +11,7 @@ pub mod error;
 pub mod io;
 
 use data::{Database, Item};
-use error::Result;
+use error::{Error, Result};
 
 const MENU: &str = r#"TUI Bricks
 
@@ -23,12 +21,14 @@ Controls:
  - 'q' - quit program
 "#;
 
-pub fn run<W>(w: &mut W, mut database: Database) -> Result<()>
+pub fn run<W>(w: &mut W) -> Result<()>
 where
     W: std::io::Write,
 {
-    execute!(w, terminal::EnterAlternateScreen)?;
+    let database_path = io::get_default_database_path()?;
+    let mut database = io::read_database_from_path(&database_path)?;
 
+    execute!(w, terminal::EnterAlternateScreen)?;
     terminal::enable_raw_mode()?;
 
     let mut search_result = String::new();
@@ -52,26 +52,19 @@ where
         w.flush()?;
 
         match read_char()? {
-            '1' => {
-                execute!(w, Print("eyo\n\n"), cursor::MoveToNextLine(1))?;
-                // w.flush()?;
-                std::thread::sleep(Duration::from_secs(1));
-
-                // execute!(
-                //     w,
-                //     SetForegroundColor(Color::Blue),
-                //     SetBackgroundColor(Color::Red),
-                //     Print("Styled text here."),
-                //     ResetColor
-                // )?;
-            }
             'a' => {
-                if let Some(part) = add_part(w, &mut database) {
+                if let Ok(part) = add_part(w, &mut database) {
                     search_result = part;
+                    io::write_database_to_path(&database_path, &database)?;
                 }
             }
             'p' => {
-                search_result = search_part(w, &database);
+                let result = search_part(w, &database);
+                if let Err(Error::PartNotFound { part_id }) = result {
+                    search_result = format!("Part {} does not exist in database.", part_id);
+                } else {
+                    search_result = result?;
+                }
             }
             'q' => {
                 execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
@@ -88,7 +81,7 @@ where
     Ok(())
 }
 
-fn add_part<W>(w: &mut W, database: &mut Database) -> Option<String>
+fn add_part<W>(w: &mut W, database: &mut Database) -> Result<String>
 where
     W: std::io::Write,
 {
@@ -100,17 +93,16 @@ where
         Print("Enter ID of new part"),
         cursor::MoveToNextLine(1),
         cursor::Show,
-    )
-    .unwrap();
-    w.flush().unwrap();
+    )?;
+    w.flush()?;
 
-    terminal::disable_raw_mode().unwrap();
+    terminal::disable_raw_mode()?;
 
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let part_id: u32 = input.trim().parse().unwrap();
+    std::io::stdin().read_line(&mut input)?;
+    let part_id: u32 = input.trim().parse()?;
 
-    terminal::enable_raw_mode().unwrap();
+    terminal::enable_raw_mode()?;
 
     queue!(
         w,
@@ -122,22 +114,20 @@ where
         Print("(you can add more later)"),
         cursor::MoveToNextLine(1),
         cursor::Hide,
-    )
-    .unwrap();
-    w.flush().unwrap();
+    )?;
+    w.flush()?;
 
     for (i, color) in data::COMP_COLORS.iter().enumerate() {
         queue!(
             w,
             Print(format!("{}: {}", i, color)),
             cursor::MoveToNextLine(1),
-        )
-        .unwrap();
+        )?;
     }
-    w.flush().unwrap();
+    w.flush()?;
 
     use data::ColorGroup::*;
-    let color_group = match read_char().unwrap() {
+    let color_group = match read_char()? {
         'a' => All,
         'b' => Basic,
         'n' => Nature,
@@ -155,26 +145,26 @@ where
         Print(format!("Enter location of group {}:", color_group)),
         cursor::MoveToNextLine(1),
         cursor::Show,
-    )
-    .unwrap();
-    w.flush().unwrap();
+    )?;
+    w.flush()?;
 
-    terminal::disable_raw_mode().unwrap();
+    terminal::disable_raw_mode()?;
 
-    let mut part_loc = String::new();
-    std::io::stdin().read_line(&mut part_loc).unwrap();
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    let part_loc = input.trim();
 
-    terminal::enable_raw_mode().unwrap();
+    terminal::enable_raw_mode()?;
 
-    let new_item = Item::new(part_id, color_group, part_loc);
+    let new_item = Item::new(part_id, color_group, part_loc.to_owned());
     let item_data = new_item.to_string();
 
     database.push(new_item);
 
-    Some(item_data)
+    Ok(item_data)
 }
 
-fn search_part<W>(w: &mut W, database: &Database) -> String
+fn search_part<W>(w: &mut W, database: &Database) -> Result<String>
 where
     W: std::io::Write,
 {
@@ -186,24 +176,26 @@ where
         Print("Search for part by ID:"),
         cursor::MoveToNextLine(1),
         cursor::Show,
-    )
-    .unwrap();
-    w.flush().unwrap();
+    )?;
+    w.flush()?;
 
-    terminal::disable_raw_mode().unwrap();
+    terminal::disable_raw_mode()?;
 
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let searched_id: u32 = input.trim().parse().unwrap();
+    std::io::stdin().read_line(&mut input)?;
+    let searched_id: u32 = input.trim().parse()?;
     for item in database.iter() {
         if item.get_id() == searched_id {
-            terminal::enable_raw_mode().unwrap();
-            return item.to_string();
+            terminal::enable_raw_mode()?;
+            return Ok(item.to_string());
         }
     }
 
-    terminal::enable_raw_mode().unwrap();
-    String::new()
+    terminal::enable_raw_mode()?;
+
+    Err(Error::PartNotFound {
+        part_id: searched_id,
+    })
 }
 
 pub fn read_char() -> Result<char> {
