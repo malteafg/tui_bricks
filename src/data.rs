@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(EnumString, Display, Serialize, Deserialize, Debug, PartialEq)]
-#[strum(serialize_all = "snake_case")]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum ColorGroup {
     All,
     Basic,
@@ -10,7 +9,21 @@ pub enum ColorGroup {
     Grey,
     Road,
     Translucent,
-    OtherColorGroup(i32),
+    OtherColorGroup(String),
+}
+
+impl fmt::Display for ColorGroup {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            All => write!(f, "All"),
+            Basic => write!(f, "Basic"),
+            Nature => write!(f, "Nature"),
+            Grey => write!(f, "Grey"),
+            Road => write!(f, "Road"),
+            Translucent => write!(f, "Translucent"),
+            OtherColorGroup(name) => write!(f, "{}", name),
+        }
+    }
 }
 
 use ColorGroup::*;

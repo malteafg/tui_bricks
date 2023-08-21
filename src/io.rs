@@ -1,29 +1,34 @@
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
-use anyhow::anyhow;
 use directories::ProjectDirs;
 
 use crate::data::Database;
+use crate::error::Result;
 
 /// linux: /home/alice/.local/share/tui_bricks/database.yml
 /// macos: /Users/Alice/Library/Application Support/com.simaflux.tui_bricks/database.yml
 /// windows: C:\Users\Alice\AppData\Roaming\simaflux\tui_bricks\data\database.yml
-pub fn get_default_database_path() -> anyhow::Result<PathBuf> {
+pub fn get_default_database_path() -> Result<PathBuf> {
     let path = ProjectDirs::from("com", "simaflux", "tui_bricks")
         .map(|dir| dir.data_dir().join("database.yml"))
-        .ok_or(anyhow!("Could not find the default database"))?;
+        .ok_or(io::Error::new(
+            io::ErrorKind::Other,
+            "no valid home directory found using the projectdirs crate, can't use/create default database",
+        ))?;
+
     let create_dir = fs::create_dir_all(&path);
     match create_dir {
         Ok(()) => Ok(path),
         Err(e) => match e.kind() {
             std::io::ErrorKind::AlreadyExists => Ok(path),
-            _ => Err(anyhow!("Could not create directory for tui_bricks data")),
+            _ => Err(e.into()),
         },
     }
 }
 
-pub fn read_database_from_path<P>(path: P) -> anyhow::Result<Database>
+pub fn read_database_from_path<P>(path: P) -> Result<Database>
 where
     P: AsRef<Path>,
 {
@@ -32,7 +37,7 @@ where
     Ok(database)
 }
 
-pub fn write_database_to_path<P>(path: P, database: &Database) -> anyhow::Result<()>
+pub fn write_database_to_path<P>(path: P, database: &Database) -> Result<()>
 where
     P: AsRef<Path>,
 {
