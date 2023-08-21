@@ -17,6 +17,8 @@ extern crate strum_macros;
 mod data;
 use data::Database;
 
+mod io;
+
 fn main() {
     let test = data::get_test_database();
 
