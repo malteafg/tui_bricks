@@ -1,5 +1,3 @@
-use std::fs::File;
-use std::io::{Read, Write};
 use std::time::Duration;
 
 use crossterm::{
@@ -15,51 +13,13 @@ extern crate strum;
 extern crate strum_macros;
 
 mod data;
-use data::Database;
+use data::{Database, Item};
 
 mod io;
 
 fn main() {
-    let test = data::get_test_database();
-
-    let string = serde_yaml::to_string(&test).unwrap();
-    dbg!(&string);
-
-    let file_path = "output.txt"; // Change this to your desired file path.
-
-    // Attempt to create or open the file for writing.
-    let mut file = match File::create(file_path) {
-        Ok(file) => file,
-        Err(e) => {
-            eprintln!("Error creating/opening the file: {}", e);
-            return;
-        }
-    };
-
-    // Attempt to write the string to the file.
-    match file.write_all(string.as_bytes()) {
-        Ok(()) => println!("Successfully wrote to the file."),
-        Err(e) => eprintln!("Error writing to the file: {}", e),
-    }
-
-    // Attempt to open the file for reading.
-    let mut file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(e) => {
-            eprintln!("Error opening the file: {}", e);
-            return;
-        }
-    };
-
-    // Read the contents of the file into a String.
-    let mut contents = String::new();
-    match file.read_to_string(&mut contents) {
-        Ok(_) => println!("Contents of the file:\n{}", contents),
-        Err(e) => eprintln!("Error reading the file: {}", e),
-    }
-
-    let yaml = serde_yaml::from_str(&string).unwrap();
-    assert_eq!(test, yaml);
+    let path = io::get_default_database_path().unwrap();
+    let test = io::read_database_from_path(&path).unwrap();
 
     let mut stdout = std::io::stdout();
     run(&mut stdout, test).unwrap();
@@ -73,7 +33,7 @@ Controls:
  - 'q' - quit program
 "#;
 
-fn run<W>(w: &mut W, database: Database) -> std::io::Result<()>
+fn run<W>(w: &mut W, mut database: Database) -> std::io::Result<()>
 where
     W: std::io::Write,
 {
@@ -116,8 +76,9 @@ where
                 // )?;
             }
             'a' => {
-                execute!(w, Print("coming soon"), cursor::MoveToNextLine(1))?;
-                std::thread::sleep(Duration::from_secs(1));
+                if let Some(part) = add_part(w, &mut database) {
+                    search_result = part;
+                }
             }
             'p' => {
                 search_result = search_part(w, &database);
@@ -133,6 +94,92 @@ where
     execute!(w, ResetColor, cursor::Show, terminal::LeaveAlternateScreen)?;
 
     terminal::disable_raw_mode()
+}
+
+fn add_part<W>(w: &mut W, database: &mut Database) -> Option<String>
+where
+    W: std::io::Write,
+{
+    queue!(
+        w,
+        ResetColor,
+        terminal::Clear(ClearType::All),
+        cursor::MoveTo(0, 0),
+        Print("Enter ID of new part"),
+        cursor::MoveToNextLine(1),
+        cursor::Show,
+    )
+    .unwrap();
+    w.flush().unwrap();
+
+    terminal::disable_raw_mode().unwrap();
+
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let part_id: u32 = input.trim().parse().unwrap();
+
+    terminal::enable_raw_mode().unwrap();
+
+    queue!(
+        w,
+        ResetColor,
+        terminal::Clear(ClearType::All),
+        cursor::MoveTo(0, 0),
+        Print("Select a color group by typing its first letter"),
+        cursor::MoveToNextLine(1),
+        Print("(you can add more later)"),
+        cursor::MoveToNextLine(1),
+        cursor::Hide,
+    )
+    .unwrap();
+    w.flush().unwrap();
+
+    for (i, color) in data::COMP_COLORS.iter().enumerate() {
+        queue!(
+            w,
+            Print(format!("{}: {}", i, color)),
+            cursor::MoveToNextLine(1),
+        )
+        .unwrap();
+    }
+    w.flush().unwrap();
+
+    use data::ColorGroup::*;
+    let color_group = match read_char().unwrap() {
+        'a' => All,
+        'b' => Basic,
+        'n' => Nature,
+        'g' => Grey,
+        'r' => Road,
+        't' => Translucent,
+        _ => todo!(),
+    };
+
+    queue!(
+        w,
+        ResetColor,
+        terminal::Clear(ClearType::All),
+        cursor::MoveTo(0, 0),
+        Print(format!("Enter location of group {}:", color_group)),
+        cursor::MoveToNextLine(1),
+        cursor::Show,
+    )
+    .unwrap();
+    w.flush().unwrap();
+
+    terminal::disable_raw_mode().unwrap();
+
+    let mut part_loc = String::new();
+    std::io::stdin().read_line(&mut part_loc).unwrap();
+
+    terminal::enable_raw_mode().unwrap();
+
+    let new_item = Item::new(part_id, color_group, part_loc);
+    let item_data = new_item.to_string();
+
+    database.push(new_item);
+
+    Some(item_data)
 }
 
 fn search_part<W>(w: &mut W, database: &Database) -> String
