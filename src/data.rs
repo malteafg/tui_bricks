@@ -61,6 +61,10 @@ impl Item {
     pub fn get_id(&self) -> u32 {
         self.id
     }
+
+    pub fn set_name(&mut self, name: &str) {
+        self.name = name.to_string();
+    }
 }
 
 impl fmt::Display for Item {
@@ -126,7 +130,7 @@ impl Database {
 
     pub fn add_item(&mut self, item: Item) -> Result<()> {
         if self.contains(item.get_id()) {
-            return Err(Error::PartExists {
+            return Err(Error::PartAlreadyExists {
                 part_id: item.get_id(),
             });
         }
@@ -135,6 +139,24 @@ impl Database {
         self.write()?;
 
         Ok(())
+    }
+
+    pub fn update_item(&mut self, item: Item) -> Result<()> {
+        if let Some((i, _)) = self
+            .raw_data
+            .iter()
+            .enumerate()
+            .find(|&(_, old_item)| item.get_id() == old_item.get_id())
+        {
+            self.raw_data[i] = item;
+            self.write()?;
+
+            Ok(())
+        } else {
+            Err(Error::PartNotFound {
+                part_id: item.get_id(),
+            })
+        }
     }
 
     pub fn contains(&self, part_id: u32) -> bool {

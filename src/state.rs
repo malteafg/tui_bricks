@@ -54,7 +54,10 @@ impl State {
             SearchItem => self.search_item(w),
             Edit => self.edit_item(),
             CancelEdit => self.cancel_edit(w),
-            SaveEdit => todo!(),
+            SaveEdit => self.save_edit(),
+            AddColorGroup => todo!(),
+            RemoveColorGroup => todo!(),
+            EditName => self.edit_name(w),
         }?;
 
         return Ok(false);
@@ -103,15 +106,38 @@ impl State {
         Ok(Mode::EditItem { item: item.clone() })
     }
 
+    fn save_edit(&mut self) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+        self.db.update_item(item.clone())?;
+        Ok(Mode::DisplayItem { item: item.clone() })
+    }
+
     fn cancel_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
             return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
+
         display::clear(w)?;
         if display::confirmation_prompt(w, "Are you sure you want to cancel changes?")? {
             Ok(Mode::DisplayItem { item: item.clone() })
         } else {
             Ok(Mode::EditItem { item: item.clone() })
         }
+    }
+
+    fn edit_name<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        display::clear(w)?;
+        display::emit_line(w, format!("Editing name of part: {}", item.get_id()))?;
+        let new_name = display::input_string(w, "Enter new name:")?;
+
+        let mut new_item = item.clone();
+        new_item.set_name(&new_name);
+        Ok(Mode::EditItem { item: new_item })
     }
 }

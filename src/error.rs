@@ -13,7 +13,7 @@ pub enum Error {
     #[error("part not found: {part_id}")]
     PartNotFound { part_id: u32 },
     #[error("part already exists in database: {part_id}")]
-    PartExists { part_id: u32 },
+    PartAlreadyExists { part_id: u32 },
 
     #[error("command {cmd} cannot be executed in mode {mode}")]
     CmdModeMismatch { cmd: String, mode: String },

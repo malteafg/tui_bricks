@@ -16,7 +16,13 @@ impl Mode {
         match self {
             Default { .. } => CmdList::new(vec![AddItem, SearchItem, Quit]),
             DisplayItem { .. } => CmdList::new(vec![AddItem, SearchItem, Quit, Edit]),
-            EditItem { .. } => CmdList::new(vec![SaveEdit, CancelEdit]),
+            EditItem { .. } => CmdList::new(vec![
+                SaveEdit,
+                CancelEdit,
+                EditName,
+                RemoveColorGroup,
+                AddColorGroup,
+            ]),
         }
     }
 }

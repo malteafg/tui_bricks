@@ -9,6 +9,9 @@ pub enum Cmd {
     Edit,
     SaveEdit,
     CancelEdit,
+    AddColorGroup,
+    RemoveColorGroup,
+    EditName,
 }
 
 impl Cmd {
@@ -21,6 +24,9 @@ impl Cmd {
             Edit => 'e',
             SaveEdit => 's',
             CancelEdit => 'c',
+            AddColorGroup => 'a',
+            RemoveColorGroup => 'r',
+            EditName => 'n',
         }
     }
 
@@ -33,6 +39,9 @@ impl Cmd {
             Edit => "(e)dit the current item",
             SaveEdit => "(s)ave the current changes",
             CancelEdit => "(c)ancel editing without saving changes currently made",
+            AddColorGroup => "(a)dd a new color group and its location for this item",
+            RemoveColorGroup => "(r)emove a color group and its location for this item",
+            EditName => "edit the (n)ame of this part",
         }
     }
 }
