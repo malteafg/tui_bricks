@@ -20,6 +20,7 @@ impl Mode {
                 SaveEdit,
                 CancelEdit,
                 EditName,
+                EditAmount,
                 RemoveColorGroup,
                 AddColorGroup,
             ]),

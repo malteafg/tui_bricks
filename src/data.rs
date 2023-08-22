@@ -44,7 +44,8 @@ pub const COMP_COLORS: [(char, ColorGroup); 6] = [
 pub struct Item {
     id: u32,
     alternative_ids: Vec<u32>,
-    name: String,
+    name: Option<String>,
+    amount: Option<u32>,
     location: Vec<(ColorGroup, String)>,
 }
 
@@ -53,7 +54,8 @@ impl Item {
         Item {
             id,
             alternative_ids: Vec::new(),
-            name: String::new(),
+            name: None,
+            amount: None,
             location: vec![(color_group, location)],
         }
     }
@@ -63,7 +65,11 @@ impl Item {
     }
 
     pub fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
+        if name.is_empty() {
+            self.name = None;
+        } else {
+            self.name = Some(name.to_string());
+        }
     }
 }
 
@@ -74,12 +80,20 @@ impl fmt::Display for Item {
             loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
         }
 
+        let name = match &self.name {
+            Some(name) => name.to_string(),
+            None => "unspecified".to_string(),
+        };
+
+        let amount = match self.amount {
+            Some(amount) => amount.to_string(),
+            None => "unspecified".to_string(),
+        };
+
         write!(
             f,
-            "Part ID: {}\nPart name: {}\n{}",
-            self.id,
-            self.name.clone(),
-            loc_string,
+            "Part ID: {}\nName: {}\nAmount: {}\n{}",
+            self.id, name, amount, loc_string,
         )
     }
 }
@@ -174,7 +188,6 @@ impl Database {
                 return Some(&item);
             }
         }
-
         None
     }
 }
@@ -189,14 +202,16 @@ pub mod tests {
         let item1 = Item {
             id: 44,
             alternative_ids: vec![123, 1324],
-            name: String::from_str("Testid").unwrap(),
+            name: Some(String::from_str("Testid").unwrap()),
+            amount: None,
             location: vec![(ColorGroup::All, String::from_str("B1A3").unwrap())],
         };
 
         let item2 = Item {
             id: 43,
             alternative_ids: vec![12, 14],
-            name: String::from_str("blah blah").unwrap(),
+            name: Some(String::from_str("blah blah").unwrap()),
+            amount: None,
             location: vec![(ColorGroup::All, String::from_str("B1A4").unwrap())],
         };
 

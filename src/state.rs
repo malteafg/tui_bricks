@@ -1,7 +1,6 @@
 use crossterm::{cursor, execute, queue};
 use std::io::Write;
 
-// use crate::command::EDIT;
 use crate::command::Cmd;
 use crate::data::{Database, Item, COMP_COLORS};
 use crate::display;
@@ -58,6 +57,7 @@ impl State {
             AddColorGroup => todo!(),
             RemoveColorGroup => todo!(),
             EditName => self.edit_name(w),
+            EditAmount => todo!(),
         }?;
 
         return Ok(false);
