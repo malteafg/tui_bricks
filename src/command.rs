@@ -1,8 +1,10 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use crate::error::Result;
+use crate::display;
+use crate::error::{Error, Result};
 use crate::mode::Mode;
+use crate::state::State;
 
 pub static ADD_ITEM: Cmd = Cmd {
     char: 'a',
@@ -40,17 +42,70 @@ pub static CANCEL_EDIT: Cmd = Cmd {
     exec: unit_exec,
 };
 
-fn unit_exec(w: &mut dyn Write) -> Result<Mode> {
+fn unit_exec(w: &mut dyn Write, state: &mut State) -> Result<Mode> {
     Ok(Mode::Default {
         info: "unit_exec".to_string(),
     })
 }
 
-// #[derive(Debug)]
+// fn add_item(w: &mut dyn Write, state: &mut State, mode: Mode) -> Result<Mode> {
+//     display::clear(w)?;
+//     display::emit_line(w, "Adding a new item to the database")?;
+//     let part_id = display::input_u32(w, "Enter the part ID of the new item")?;
+
+//     display::clear(w)?;
+//     display::emit_line(w, "Adding a new item to the database")?;
+//     let color_group = display::select_from_list(
+//         w,
+//         "Select a color group by typing its first letter\n(you can add more groups later)",
+//         &COMP_COLORS,
+//     )?;
+
+//     display::clear(w)?;
+//     display::emit_line(w, "Adding a new item to the database")?;
+//     let part_loc = display::input_string(w, &format!("Enter location of group {}:", color_group))?;
+
+//     let new_item = Item::new(part_id, color_group, part_loc.to_owned());
+//     self.db.add_item(new_item.clone())?;
+//     Ok(Mode::DisplayItem { item: new_item })
+// }
+
+// fn search_item(w: &mut dyn Write, state: &mut State, mode: Mode) -> Result<Mode> {
+//     display::clear(w)?;
+//     let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
+
+//     if let Some(item) = self.db.get_item(searched_id) {
+//         return Ok(Mode::DisplayItem { item: item.clone() });
+//     }
+
+//     Ok(Mode::Default {
+//         info: format!("Part {} not found in database", searched_id),
+//     })
+// }
+
+// fn edit_item(w: &mut dyn Write, state: &mut State, mode: Mode) -> Result<Mode> {
+//     let Mode::DisplayItem { item } = &self.mode else {
+//             return Err(Error::CmdModeMismatch { cmd: EDIT.to_string(), mode: self.mode.to_string() });
+//         };
+//     Ok(Mode::EditItem { item: item.clone() })
+// }
+
+// fn cancel_edit(w: &mut dyn Write, state: &mut State, mode: Mode) -> Result<Mode> {
+//     let Mode::EditItem { item } = &self.mode else {
+//             return Err(Error::CmdModeMismatch { cmd: EDIT.to_string(), mode: self.mode.to_string() });
+//         };
+//     display::clear(w)?;
+//     if display::confirmation_prompt(w, "Are you sure you want to cancel changes?")? {
+//         Ok(Mode::DisplayItem { item: item.clone() })
+//     } else {
+//         Ok(Mode::EditItem { item: item.clone() })
+//     }
+// }
+
 pub struct Cmd {
     char: char,
     info: &'static str,
-    exec: fn(&mut dyn Write) -> Result<Mode>,
+    exec: fn(&mut dyn Write, &mut State) -> Result<Mode>,
 }
 
 impl Display for Cmd {

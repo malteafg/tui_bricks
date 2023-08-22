@@ -5,73 +5,97 @@ use crate::{error::Result, io, mode::Mode};
 
 use crossterm::{
     cursor::{self, MoveToNextLine, MoveToPreviousLine},
-    execute, queue,
     style::{Print, ResetColor},
-    terminal::{self, Clear, ClearType},
+    terminal::{Clear, ClearType},
+    QueueableCommand,
 };
 
-pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
-    queue!(w, Print(line), cursor::MoveToNextLine(1))?;
+macro_rules! queue_test {
+    ($writer:expr $(, $command:expr)* $(,)?) => {{
+
+        // This allows the macro to take both mut impl Write and &mut impl Write.
+        Ok($writer)
+            $(.and_then(|writer| QueueableCommand::queue(writer, $command)))*
+            .map(|_| ())
+    }}
+}
+
+macro_rules! execute_test {
+    ($writer:expr $(, $command:expr)* $(,)? ) => {{
+        // Queue each command, then flush
+        queue_test!($writer $(, $command)*)
+            .and_then(|()| {
+                ::std::io::Write::flush($writer)
+            })
+    }}
+}
+
+pub fn emit_line<D: Display>(w: &mut dyn Write, line: D) -> Result<()> {
+    queue_test!(w, Print(line), cursor::MoveToNextLine(1))?;
     Ok(())
 }
 
-pub fn emit_dash<W: Write>(w: &mut W) -> Result<()> {
+pub fn emit_dash(w: &mut dyn Write) -> Result<()> {
     emit_line(w, "---------------------------------------------")?;
     Ok(())
 }
 
-pub fn header<W: Write>(w: &mut W, header: &str) -> Result<()> {
+pub fn header(w: &mut dyn Write, header: &str) -> Result<()> {
     emit_dash(w)?;
     emit_iter(w, header.split("\n"))?;
     emit_dash(w)?;
-    queue!(w, cursor::MoveToNextLine(1))?;
+    queue_test!(w, cursor::MoveToNextLine(1))?;
     Ok(())
 }
 
-pub fn default_header<W: Write>(w: &mut W) -> Result<()> {
+pub fn default_header(w: &mut dyn Write) -> Result<()> {
     header(w, "Welcome to TUI Bricks")?;
     Ok(())
 }
 
-pub fn emit_iter<W: Write, D: Display>(w: &mut W, iter: impl Iterator<Item = D>) -> Result<()> {
+pub fn emit_iter<D: Display>(w: &mut dyn Write, iter: impl Iterator<Item = D>) -> Result<()> {
     for line in iter {
-        queue!(w, Print(line), cursor::MoveToNextLine(1))?;
+        queue_test!(&mut *w, Print(line), cursor::MoveToNextLine(1))?;
     }
     Ok(())
 }
 
-pub fn input_u32<W: Write>(w: &mut W, text: &str) -> Result<u32> {
+pub fn input_u32(w: &mut dyn Write, text: &str) -> Result<u32> {
     emit_iter(w, text.split("\n"))?;
     emit_line(w, "(Input should be a number)")?;
-    queue!(w, cursor::Show)?;
+    queue_test!(&mut *w, cursor::Show)?;
     w.flush()?;
 
     loop {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
         if let Ok(u32_input) = input.trim().parse() {
-            queue!(w, cursor::Hide)?;
+            queue_test!(w, cursor::Hide)?;
             return Ok(u32_input);
         } else {
-            execute!(w, MoveToPreviousLine(1), Clear(ClearType::CurrentLine))?;
+            execute_test!(
+                &mut *w,
+                MoveToPreviousLine(1),
+                Clear(ClearType::CurrentLine)
+            )?;
         }
     }
 }
 
-pub fn input_string<W: Write>(w: &mut W, text: &str) -> Result<String> {
+pub fn input_string(w: &mut dyn Write, text: &str) -> Result<String> {
     emit_iter(w, text.split("\n"))?;
-    queue!(w, cursor::Show)?;
+    queue_test!(&mut *w, cursor::Show)?;
     w.flush()?;
 
     let mut input = String::new();
     std::io::stdin().read_line(&mut input)?;
     let result = input.trim().to_string();
 
-    queue!(w, cursor::Hide)?;
+    queue_test!(w, cursor::Hide)?;
     Ok(result)
 }
 
-pub fn confirmation_prompt<W: Write>(w: &mut W, text: &str) -> Result<bool> {
+pub fn confirmation_prompt(w: &mut dyn Write, text: &str) -> Result<bool> {
     emit_iter(w, text.split("\n"))?;
     emit_line(w, "(y)es or (n)o?")?;
     w.flush()?;
@@ -85,14 +109,14 @@ pub fn confirmation_prompt<W: Write>(w: &mut W, text: &str) -> Result<bool> {
     }
 }
 
-pub fn select_from_list<W: Write, D: Display + Clone>(
-    w: &mut W,
+pub fn select_from_list<D: Display + Clone>(
+    w: &mut dyn Write,
     text: &str,
     options: &[(char, D)],
 ) -> Result<D> {
     emit_iter(w, text.split("\n"))?;
     emit_line(w, "Select from the list by typing the letter")?;
-    queue!(w, MoveToNextLine(1))?;
+    queue_test!(&mut *w, MoveToNextLine(1))?;
     for (c, d) in options {
         emit_line(w, &format!("{}: {}", c, d.to_string()))?;
     }
@@ -109,30 +133,31 @@ pub fn select_from_list<W: Write, D: Display + Clone>(
     }
 }
 
-pub fn clear<W: Write>(w: &mut W) -> Result<()> {
-    queue!(
-        w,
-        ResetColor,
-        terminal::Clear(ClearType::All),
-        cursor::Hide,
-        cursor::MoveTo(0, 0)
-    )?;
+pub fn clear(w: &mut dyn Write) -> Result<()> {
+    w.queue(ResetColor)?;
+    // queue!(
+    //     w,
+    //     ResetColor,
+    //     terminal::Clear(ClearType::All),
+    //     cursor::Hide,
+    //     cursor::MoveTo(0, 0)
+    // )?;
 
     Ok(())
 }
 
 pub trait EmitMode {
-    fn emit_mode<W: Write>(&self, w: &mut W) -> Result<()>;
+    fn emit_mode(&self, w: &mut dyn Write) -> Result<()>;
 }
 
 impl EmitMode for Mode {
-    fn emit_mode<W: Write>(&self, w: &mut W) -> Result<()> {
+    fn emit_mode(&self, w: &mut dyn Write) -> Result<()> {
         clear(w)?;
         use Mode::*;
         match self {
             Default { info } => {
                 default_header(w)?;
-                queue!(w, Print(info), cursor::MoveToNextLine(2))?;
+                queue_test!(w, Print(info), cursor::MoveToNextLine(2))?;
             }
             DisplayItem { item } => {
                 header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
