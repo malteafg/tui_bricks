@@ -1,12 +1,13 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use crate::{error::Result, state::Mode};
+use crate::{error::Result, io, state::Mode};
 
 use crossterm::{
-    cursor, queue,
+    cursor::{self, MoveToNextLine, MoveToPreviousLine},
+    execute, queue,
     style::{Print, ResetColor},
-    terminal::{self, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
@@ -27,6 +28,61 @@ pub fn emit_iter<W: Write, D: Display>(w: &mut W, iter: impl Iterator<Item = D>)
         queue!(w, Print(line), cursor::MoveToNextLine(1))?;
     }
     Ok(())
+}
+
+pub fn input_u32<W: Write>(w: &mut W, text: &str) -> Result<u32> {
+    emit_iter(w, text.split("\n"))?;
+    emit_line(w, "(Input should be a number)")?;
+    queue!(w, cursor::Show)?;
+    w.flush()?;
+
+    loop {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        if let Ok(u32_input) = input.trim().parse() {
+            queue!(w, cursor::Hide)?;
+            return Ok(u32_input);
+        } else {
+            execute!(w, MoveToPreviousLine(1), Clear(ClearType::CurrentLine))?;
+        }
+    }
+}
+
+pub fn input_string<W: Write>(w: &mut W, text: &str) -> Result<String> {
+    emit_iter(w, text.split("\n"))?;
+    queue!(w, cursor::Show)?;
+    w.flush()?;
+
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    let result = input.trim().to_string();
+
+    queue!(w, cursor::Hide)?;
+    Ok(result)
+}
+
+pub fn select_from_list<W: Write, D: Display + Clone>(
+    w: &mut W,
+    text: &str,
+    options: &[(char, D)],
+) -> Result<D> {
+    emit_iter(w, text.split("\n"))?;
+    emit_line(w, "Select from the list by typing the letter")?;
+    queue!(w, MoveToNextLine(1))?;
+    for (c, d) in options {
+        emit_line(w, &format!("{}: {}", c, d.to_string()))?;
+    }
+    w.flush()?;
+
+    loop {
+        let selected = io::wait_for_char()?;
+        for (c, d) in options {
+            if *c == selected {
+                return Ok(d.clone());
+            }
+        }
+        // execute!(w, MoveToPreviousLine(1), Clear(ClearType::CurrentLine))?;
+    }
 }
 
 pub fn clear<W: Write>(w: &mut W) -> Result<()> {

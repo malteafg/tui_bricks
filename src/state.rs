@@ -1,11 +1,7 @@
-use crossterm::{
-    cursor, execute, queue,
-    style::{Print, ResetColor},
-    terminal::{self, ClearType},
-};
+use crossterm::{cursor, execute, queue};
 
 use crate::command::CmdList;
-use crate::data::{ColorGroup, Database, Item, COMP_COLORS};
+use crate::data::{Database, Item, COMP_COLORS};
 use crate::display;
 use crate::display::EmitMode;
 use crate::error::Result;
@@ -79,73 +75,25 @@ impl State {
     }
 
     fn add_part<W: std::io::Write>(&mut self, w: &mut W) -> Result<Mode> {
-        queue!(
+        display::clear(w)?;
+        display::emit_line(w, "Adding a new item to the database")?;
+        let part_id = display::input_u32(w, "Enter the part ID of the new item")?;
+
+        display::clear(w)?;
+        display::emit_line(w, "Adding a new item to the database")?;
+        let color_group = display::select_from_list(
             w,
-            ResetColor,
-            terminal::Clear(ClearType::All),
-            cursor::MoveTo(0, 0),
-            Print("Enter ID of new part"),
-            cursor::MoveToNextLine(1),
-            cursor::Show,
+            "Select a color group by typing its first letter\n(you can add more groups later)",
+            &COMP_COLORS,
         )?;
-        w.flush()?;
 
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        let part_id: u32 = input.trim().parse()?;
-
-        queue!(
-            w,
-            ResetColor,
-            terminal::Clear(ClearType::All),
-            cursor::MoveTo(0, 0),
-            Print("Select a color group by typing its first letter"),
-            cursor::MoveToNextLine(1),
-            Print("(you can add more later)"),
-            cursor::MoveToNextLine(1),
-            cursor::Hide,
-        )?;
-        w.flush()?;
-
-        for color_group in COMP_COLORS.iter() {
-            queue!(
-                w,
-                Print(format!("{}", color_group)),
-                cursor::MoveToNextLine(1),
-            )?;
-        }
-        w.flush()?;
-
-        use ColorGroup::*;
-        let color_group = match io::wait_for_char()? {
-            'a' => All,
-            'b' => Basic,
-            'n' => Nature,
-            'g' => Grey,
-            'r' => Road,
-            't' => Translucent,
-            _ => todo!(),
-        };
-
-        queue!(
-            w,
-            ResetColor,
-            terminal::Clear(ClearType::All),
-            cursor::MoveTo(0, 0),
-            Print(format!("Enter location of group {}:", color_group)),
-            cursor::MoveToNextLine(1),
-            cursor::Show,
-        )?;
-        w.flush()?;
-
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        let part_loc = input.trim();
+        display::clear(w)?;
+        display::emit_line(w, "Adding a new item to the database")?;
+        let part_loc =
+            display::input_string(w, &format!("Enter location of group {}:", color_group))?;
 
         let new_item = Item::new(part_id, color_group, part_loc.to_owned());
-
         self.db.add_item(new_item.clone())?;
-
         Ok(Mode::DisplayItem { item: new_item })
     }
 
@@ -153,20 +101,8 @@ impl State {
     where
         W: std::io::Write,
     {
-        queue!(
-            w,
-            ResetColor,
-            terminal::Clear(ClearType::All),
-            cursor::MoveTo(0, 0),
-            Print("Search for part by ID:"),
-            cursor::MoveToNextLine(1),
-            cursor::Show,
-        )?;
-        w.flush()?;
-
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        let searched_id: u32 = input.trim().parse()?;
+        display::clear(w)?;
+        let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
 
         if let Some(item) = self.db.get_item(searched_id) {
             return Ok(Mode::DisplayItem { item: item.clone() });

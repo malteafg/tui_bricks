@@ -31,7 +31,14 @@ impl fmt::Display for ColorGroup {
 }
 
 use ColorGroup::*;
-pub const COMP_COLORS: [ColorGroup; 6] = [All, Basic, Nature, Grey, Road, Translucent];
+pub const COMP_COLORS: [(char, ColorGroup); 6] = [
+    ('a', All),
+    ('b', Basic),
+    ('n', Nature),
+    ('g', Grey),
+    ('r', Road),
+    ('t', Translucent),
+];
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Item {
