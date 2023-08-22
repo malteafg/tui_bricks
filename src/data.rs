@@ -72,9 +72,9 @@ impl fmt::Display for Item {
 
         write!(
             f,
-            "Part found: {}\n\nPart ID: {}\n\n{}",
-            self.name.clone(),
+            "Part ID: {}\nPart name: {}\n{}",
             self.id,
+            self.name.clone(),
             loc_string,
         )
     }

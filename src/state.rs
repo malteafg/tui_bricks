@@ -1,31 +1,17 @@
 use crossterm::{cursor, execute, queue};
+use std::io::Write;
 
-use crate::command::CmdList;
+use crate::command::EDIT;
 use crate::data::{Database, Item, COMP_COLORS};
 use crate::display;
 use crate::display::EmitMode;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::io;
+use crate::mode::Mode;
 
 pub struct State {
     db: Database,
     mode: Mode,
-}
-
-pub enum Mode {
-    Default { info: String },
-    DisplayItem { item: Item },
-}
-
-impl Mode {
-    pub fn get_possible_cmds(&self) -> CmdList {
-        use crate::command::*;
-        use Mode::*;
-        match self {
-            Default { .. } => CmdList::new(vec![ADD_ITEM, SEARCH_ITEM]),
-            DisplayItem { .. } => CmdList::new(vec![ADD_ITEM, SEARCH_ITEM]),
-        }
-    }
 }
 
 impl State {
@@ -39,13 +25,10 @@ impl State {
     }
 
     pub fn accept_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<bool> {
-        display::clear(w)?;
-        display::header(w)?;
-
         self.mode.emit_mode(w)?;
 
         let possible_cmds = self.mode.get_possible_cmds();
-        queue!(w, cursor::MoveToNextLine(1))?;
+        display::emit_dash(w)?;
         display::emit_line(w, "List of possible commands:")?;
         queue!(w, cursor::MoveToNextLine(1))?;
         display::emit_iter(w, possible_cmds.iter())?;
@@ -66,15 +49,17 @@ impl State {
 
     fn execute_cmd<W: std::io::Write>(&mut self, char: char, w: &mut W) -> Result<Mode> {
         match char {
-            'a' => self.add_part(w),
-            'p' => self.search_part(w),
+            'a' => self.add_item(w),
+            'p' => self.search_item(w),
+            'e' => self.edit_item(),
+            'c' => self.cancel_edit(w),
             _ => Ok(Mode::Default {
                 info: "executing command failed".to_owned(),
             }),
         }
     }
 
-    fn add_part<W: std::io::Write>(&mut self, w: &mut W) -> Result<Mode> {
+    fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
         let part_id = display::input_u32(w, "Enter the part ID of the new item")?;
@@ -97,10 +82,7 @@ impl State {
         Ok(Mode::DisplayItem { item: new_item })
     }
 
-    fn search_part<W>(&self, w: &mut W) -> Result<Mode>
-    where
-        W: std::io::Write,
-    {
+    fn search_item<W: Write>(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
 
@@ -111,5 +93,24 @@ impl State {
         Ok(Mode::Default {
             info: format!("Part {} not found in database", searched_id),
         })
+    }
+
+    fn edit_item(&self) -> Result<Mode> {
+        let Mode::DisplayItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: EDIT.to_string(), mode: self.mode.to_string() });
+        };
+        Ok(Mode::EditItem { item: item.clone() })
+    }
+
+    fn cancel_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: EDIT.to_string(), mode: self.mode.to_string() });
+        };
+        display::clear(w)?;
+        if display::confirmation_prompt(w, "Are you sure you want to cancel changes?")? {
+            Ok(Mode::DisplayItem { item: item.clone() })
+        } else {
+            Ok(Mode::EditItem { item: item.clone() })
+        }
     }
 }

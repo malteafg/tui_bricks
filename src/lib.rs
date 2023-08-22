@@ -5,6 +5,7 @@ mod data;
 mod display;
 pub mod error;
 pub mod io;
+mod mode;
 mod state;
 
 use error::Result;

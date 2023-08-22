@@ -14,6 +14,9 @@ pub enum Error {
     PartNotFound { part_id: u32 },
     #[error("part already exists in database: {part_id}")]
     PartExists { part_id: u32 },
+
+    #[error("command {cmd} cannot be executed in mode {mode}")]
+    CmdModeMismatch { cmd: String, mode: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

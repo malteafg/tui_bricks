@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use crate::{error::Result, io, state::Mode};
+use crate::{error::Result, io, mode::Mode};
 
 use crossterm::{
     cursor::{self, MoveToNextLine, MoveToPreviousLine},
@@ -15,11 +15,21 @@ pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
     Ok(())
 }
 
-pub fn header<W: Write>(w: &mut W) -> Result<()> {
-    emit_line(w, "--------------------")?;
-    emit_line(w, " TUI Bricks")?;
-    emit_line(w, "--------------------")?;
+pub fn emit_dash<W: Write>(w: &mut W) -> Result<()> {
+    emit_line(w, "---------------------------------------------")?;
+    Ok(())
+}
+
+pub fn header<W: Write>(w: &mut W, header: &str) -> Result<()> {
+    emit_dash(w)?;
+    emit_iter(w, header.split("\n"))?;
+    emit_dash(w)?;
     queue!(w, cursor::MoveToNextLine(1))?;
+    Ok(())
+}
+
+pub fn default_header<W: Write>(w: &mut W) -> Result<()> {
+    header(w, "Welcome to TUI Bricks")?;
     Ok(())
 }
 
@@ -59,6 +69,20 @@ pub fn input_string<W: Write>(w: &mut W, text: &str) -> Result<String> {
 
     queue!(w, cursor::Hide)?;
     Ok(result)
+}
+
+pub fn confirmation_prompt<W: Write>(w: &mut W, text: &str) -> Result<bool> {
+    emit_iter(w, text.split("\n"))?;
+    emit_line(w, "(y)es or (n)o?")?;
+    w.flush()?;
+
+    loop {
+        match io::wait_for_char()? {
+            'y' => return Ok(true),
+            'n' => return Ok(false),
+            _ => {}
+        }
+    }
 }
 
 pub fn select_from_list<W: Write, D: Display + Clone>(
@@ -103,10 +127,25 @@ pub trait EmitMode {
 
 impl EmitMode for Mode {
     fn emit_mode<W: Write>(&self, w: &mut W) -> Result<()> {
+        clear(w)?;
         use Mode::*;
         match self {
-            Default { info } => queue!(w, Print(info), cursor::MoveToNextLine(1))?,
-            DisplayItem { item } => emit_iter(w, item.to_string().split("\n"))?,
+            Default { info } => {
+                default_header(w)?;
+                queue!(w, Print(info), cursor::MoveToNextLine(2))?;
+            }
+            DisplayItem { item } => {
+                header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
+                emit_iter(w, item.to_string().split("\n"))?;
+            }
+            EditItem { item } => {
+                header(
+                    w,
+                    &format!("Now editing item with part ID {}", item.get_id()),
+                )?;
+                emit_iter(w, item.to_string().split("\n"))?;
+                emit_line(w, "use any of the following commands to edit the item")?;
+            }
         }
         Ok(())
     }
