@@ -1,7 +1,8 @@
 use crossterm::{cursor, execute, queue};
 use std::io::Write;
 
-use crate::command::EDIT;
+// use crate::command::EDIT;
+use crate::command::Cmd;
 use crate::data::{Database, Item, COMP_COLORS};
 use crate::display;
 use crate::display::EmitMode;
@@ -35,28 +36,28 @@ impl State {
 
         w.flush()?;
 
-        match io::wait_for_char()? {
-            'q' => {
+        let cmd_char = io::wait_for_char()?;
+        let Some(cmd) = possible_cmds.get(cmd_char) else {
+            self.mode = Mode::Default {
+                info: "executing command failed".to_owned(),
+            };
+            return Ok(false);
+        };
+
+        use Cmd::*;
+        self.mode = match cmd {
+            Quit => {
                 execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
                 return Ok(true);
             }
-            c => {
-                self.mode = self.execute_cmd(c, w)?;
-                return Ok(false);
-            }
-        };
-    }
+            AddItem => self.add_item(w),
+            SearchItem => self.search_item(w),
+            Edit => self.edit_item(),
+            CancelEdit => self.cancel_edit(w),
+            SaveEdit => todo!(),
+        }?;
 
-    fn execute_cmd<W: std::io::Write>(&mut self, char: char, w: &mut W) -> Result<Mode> {
-        match char {
-            'a' => self.add_item(w),
-            'p' => self.search_item(w),
-            'e' => self.edit_item(),
-            'c' => self.cancel_edit(w),
-            _ => Ok(Mode::Default {
-                info: "executing command failed".to_owned(),
-            }),
-        }
+        return Ok(false);
     }
 
     fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
@@ -97,14 +98,14 @@ impl State {
 
     fn edit_item(&self) -> Result<Mode> {
         let Mode::DisplayItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: EDIT.to_string(), mode: self.mode.to_string() });
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
         Ok(Mode::EditItem { item: item.clone() })
     }
 
     fn cancel_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: EDIT.to_string(), mode: self.mode.to_string() });
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
         display::clear(w)?;
         if display::confirmation_prompt(w, "Are you sure you want to cancel changes?")? {

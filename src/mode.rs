@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::command::CmdList;
+use crate::command::{Cmd, CmdList};
 use crate::data::Item;
 
 pub enum Mode {
@@ -11,12 +11,12 @@ pub enum Mode {
 
 impl Mode {
     pub fn get_possible_cmds(&self) -> CmdList {
-        use crate::command::*;
+        use Cmd::*;
         use Mode::*;
         match self {
-            Default { .. } => CmdList::new(vec![&ADD_ITEM, &SEARCH_ITEM, &QUIT]),
-            DisplayItem { .. } => CmdList::new(vec![&ADD_ITEM, &SEARCH_ITEM, &QUIT, &EDIT]),
-            EditItem { .. } => CmdList::new(vec![&SAVE_EDIT, &CANCEL_EDIT]),
+            Default { .. } => CmdList::new(vec![AddItem, SearchItem, Quit]),
+            DisplayItem { .. } => CmdList::new(vec![AddItem, SearchItem, Quit, Edit]),
+            EditItem { .. } => CmdList::new(vec![SaveEdit, CancelEdit]),
         }
     }
 }
