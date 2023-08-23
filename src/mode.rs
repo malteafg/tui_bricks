@@ -18,7 +18,7 @@ impl Mode {
             DisplayItem { .. } => CmdList::new(vec![AddItem, SearchItem, Quit, Edit]),
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
-                CancelEdit,
+                QuitEdit,
                 EditName,
                 EditAmount,
                 RemoveColorGroup,

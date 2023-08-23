@@ -64,12 +64,40 @@ impl Item {
         self.id
     }
 
+    pub fn get_alternative_ids(&self) -> &[u32] {
+        &self.alternative_ids
+    }
+
+    pub fn get_name(&self) -> &Option<String> {
+        &self.name
+    }
+
+    pub fn get_amount(&self) -> Option<u32> {
+        self.amount
+    }
+
+    pub fn get_location(&self) -> &[(ColorGroup, String)] {
+        &self.location
+    }
+
     pub fn set_name(&mut self, name: &str) {
         if name.is_empty() {
             self.name = None;
         } else {
             self.name = Some(name.to_string());
         }
+    }
+
+    pub fn set_amount(&mut self, amount: Option<u32>) {
+        self.amount = amount;
+    }
+
+    pub fn add_color_group(&mut self, color_group: ColorGroup, location: String) {
+        self.location.push((color_group, location))
+    }
+
+    pub fn remove_color_group(&mut self, color_group: ColorGroup) {
+        self.location.retain(|(c, _)| *c != color_group);
     }
 }
 
@@ -182,13 +210,13 @@ impl Database {
         return false;
     }
 
-    pub fn get_item(&self, part_id: u32) -> Option<&Item> {
+    pub fn get_item(&self, part_id: u32) -> Result<&Item> {
         for item in self.raw_data.iter() {
             if item.get_id() == part_id {
-                return Some(&item);
+                return Ok(&item);
             }
         }
-        None
+        Err(Error::PartNotFound { part_id })
     }
 }
 

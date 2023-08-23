@@ -3,8 +3,8 @@ use std::io::Write;
 
 use crate::command::Cmd;
 use crate::data::{Database, Item, COMP_COLORS};
-use crate::display;
 use crate::display::EmitMode;
+use crate::display::{self, construct_item_changes};
 use crate::error::{Error, Result};
 use crate::input::wait_for_cmdchar;
 use crate::mode::Mode;
@@ -56,12 +56,12 @@ impl State {
             AddItem => self.add_item(w),
             SearchItem => self.search_item(w),
             Edit => self.edit_item(),
-            CancelEdit => self.cancel_edit(w),
+            QuitEdit => self.cancel_edit(w),
             SaveEdit => self.save_edit(),
-            AddColorGroup => todo!(),
-            RemoveColorGroup => todo!(),
+            AddColorGroup => self.add_color_group(w),
+            RemoveColorGroup => self.remove_color_group(w),
             EditName => self.edit_name(w),
-            EditAmount => todo!(),
+            EditAmount => self.edit_amount(w),
         };
 
         if let Err(Error::Escape) = new_mode {
@@ -99,7 +99,7 @@ impl State {
         display::clear(w)?;
         let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
 
-        if let Some(item) = self.db.get_item(searched_id) {
+        if let Ok(item) = self.db.get_item(searched_id) {
             return Ok(Mode::DisplayItem { item: item.clone() });
         }
 
@@ -128,11 +128,22 @@ impl State {
             return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
 
-        display::clear(w)?;
-        if display::confirmation_prompt(w, "Are you sure you want to cancel changes?")? {
+        let old_item = self.db.get_item(item.get_id())?;
+        if old_item == item {
             Ok(Mode::DisplayItem { item: item.clone() })
         } else {
-            Ok(Mode::EditItem { item: item.clone() })
+            display::clear(w)?;
+            let changes = format!(
+                "Are you sure you want to quit editing and cancel these changes?\n{}",
+                construct_item_changes(old_item, item)
+            );
+            if display::confirmation_prompt(w, &changes)? {
+                Ok(Mode::DisplayItem {
+                    item: old_item.clone(),
+                })
+            } else {
+                Ok(Mode::EditItem { item: item.clone() })
+            }
         }
     }
 
@@ -147,6 +158,96 @@ impl State {
 
         let mut new_item = item.clone();
         new_item.set_name(&new_name);
+        Ok(Mode::EditItem { item: new_item })
+    }
+
+    fn edit_amount<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        display::clear(w)?;
+        display::emit_line(w, format!("Editing amount of part: {}", item.get_id()))?;
+        let new_amount = display::input_u32(w, "Enter new amount:")?;
+
+        let mut new_item = item.clone();
+        new_item.set_amount(Some(new_amount));
+        Ok(Mode::EditItem { item: new_item })
+    }
+
+    fn add_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        display::clear(w)?;
+        display::emit_line(
+            w,
+            format!(
+                "Adding a new color group to item with ID: {}",
+                item.get_id()
+            ),
+        )?;
+
+        let mut options = COMP_COLORS.clone().to_vec();
+        options.retain(|(_, g)| {
+            for (other, _) in item.get_location() {
+                if other == g {
+                    return false;
+                }
+            }
+            true
+        });
+
+        let color_group = display::select_from_list(
+            w,
+            "Select a color group for which to add a location",
+            &options,
+        )?;
+
+        display::clear(w)?;
+        display::emit_line(
+            w,
+            format!(
+                "Adding a new color group to item with ID: {}",
+                item.get_id()
+            ),
+        )?;
+
+        let part_loc =
+            display::input_string(w, &format!("Enter location of group {}:", color_group))?;
+        let mut new_item = item.clone();
+        new_item.add_color_group(color_group, part_loc);
+        Ok(Mode::EditItem { item: new_item })
+    }
+
+    fn remove_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        display::clear(w)?;
+        display::emit_line(
+            w,
+            format!(
+                "Removing a color group from item with ID: {}",
+                item.get_id()
+            ),
+        )?;
+
+        let mut options = COMP_COLORS.clone().to_vec();
+        options.retain(|(_, g)| {
+            for (other, _) in item.get_location() {
+                if other == g {
+                    return true;
+                }
+            }
+            false
+        });
+
+        let color_group = display::select_from_list(w, "Select  color group to remove:", &options)?;
+        let mut new_item = item.clone();
+        new_item.remove_color_group(color_group);
         Ok(Mode::EditItem { item: new_item })
     }
 }

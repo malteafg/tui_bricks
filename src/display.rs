@@ -1,9 +1,9 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use crate::error::Result;
 use crate::input;
 use crate::mode::Mode;
+use crate::{data::Item, error::Result};
 
 use crossterm::{
     cursor::{self, MoveToNextLine},
@@ -112,6 +112,42 @@ pub fn clear<W: Write>(w: &mut W) -> Result<()> {
     Ok(())
 }
 
+pub fn construct_item_changes(old: &Item, new: &Item) -> String {
+    let mut diff = String::new();
+    if old.get_id() != new.get_id() {
+        diff.push_str(&format!("Part ID: {} -> {}\n", old.get_id(), new.get_id()));
+    }
+    if old.get_alternative_ids() != new.get_alternative_ids() {
+        diff.push_str(&format!(
+            "Alternative IDs: {} -> {}\n",
+            old.get_id(),
+            new.get_id()
+        ));
+    }
+    if old.get_name() != new.get_name() {
+        diff.push_str(&format!(
+            "Name: {:#?} -> {:#?}\n",
+            old.get_name(),
+            new.get_name()
+        ));
+    }
+    if old.get_amount() != new.get_amount() {
+        diff.push_str(&format!(
+            "Amount: {:#?} -> {:#?}\n",
+            old.get_amount(),
+            new.get_amount()
+        ));
+    }
+    if old.get_location() != new.get_location() {
+        diff.push_str(&format!(
+            "Locations: {:#?} -> {:#?}\n",
+            old.get_location(),
+            new.get_location()
+        ));
+    }
+    diff
+}
+
 pub trait EmitMode {
     fn emit_mode<W: Write>(&self, w: &mut W) -> Result<()>;
 }
@@ -135,7 +171,6 @@ impl EmitMode for Mode {
                     &format!("Now editing item with part ID {}", item.get_id()),
                 )?;
                 emit_iter(w, item.to_string().split("\n"))?;
-                emit_line(w, "use any of the following commands to edit the item")?;
             }
         }
         Ok(())
