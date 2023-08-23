@@ -62,6 +62,7 @@ impl State {
             RemoveColorGroup => self.remove_color_group(w),
             EditName => self.edit_name(w),
             EditAmount => self.edit_amount(w),
+            DeleteItem => self.delete_item(w),
         };
 
         if let Err(Error::Escape) = new_mode {
@@ -249,5 +250,27 @@ impl State {
         let mut new_item = item.clone();
         new_item.remove_color_group(color_group);
         Ok(Mode::EditItem { item: new_item })
+    }
+
+    fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        display::clear(w)?;
+        let changes = format!(
+            "Are you absolutely sure that you want to delete the item with ID: {}?\n",
+            item.get_id(),
+        );
+        display::emit_iter(w, item.to_string().split("\n"))?;
+
+        if display::confirmation_prompt(w, &changes)? {
+            self.db.remove_item(item.get_id())?;
+            Ok(Mode::Default {
+                info: format!("Item with ID: {} was deleted.", item.get_id()),
+            })
+        } else {
+            Ok(Mode::EditItem { item: item.clone() })
+        }
     }
 }

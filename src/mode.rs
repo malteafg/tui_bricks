@@ -23,6 +23,7 @@ impl Mode {
                 EditAmount,
                 RemoveColorGroup,
                 AddColorGroup,
+                DeleteItem,
             ]),
         }
     }

@@ -201,6 +201,13 @@ impl Database {
         }
     }
 
+    /// TODO maybe do a bin or something similar
+    pub fn remove_item(&mut self, id: u32) -> Result<()> {
+        self.raw_data.retain(|item| item.get_id() != id);
+        self.write()?;
+        Ok(())
+    }
+
     pub fn contains(&self, part_id: u32) -> bool {
         for item in self.raw_data.iter() {
             if item.get_id() == part_id {

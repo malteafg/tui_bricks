@@ -13,6 +13,7 @@ pub enum Cmd {
     RemoveColorGroup,
     EditName,
     EditAmount,
+    DeleteItem,
 }
 
 impl Cmd {
@@ -29,6 +30,7 @@ impl Cmd {
             RemoveColorGroup => 'r',
             EditName => 'n',
             EditAmount => 'm',
+            DeleteItem => 'd',
         }
     }
 
@@ -45,6 +47,7 @@ impl Cmd {
             RemoveColorGroup => "(r)emove a color group and its location for this item",
             EditName => "edit the (n)ame of this part",
             EditAmount => "edit the a(m)ount of this part",
+            DeleteItem => "(d)elete the current item",
         }
     }
 }
