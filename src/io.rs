@@ -1,8 +1,5 @@
 use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
-
-use directories::ProjectDirs;
+use std::path::Path;
 
 use crate::data::RawDatabase;
 use crate::error::Result;
@@ -10,11 +7,12 @@ use crate::error::Result;
 /// linux: /home/alice/.local/share/tui_bricks/database.yml
 /// macos: /Users/Alice/Library/Application Support/com.simaflux.tui_bricks/database.yml
 /// windows: C:\Users\Alice\AppData\Roaming\simaflux\tui_bricks\data\database.yml
-pub fn get_default_database_path() -> Result<PathBuf> {
-    let path = ProjectDirs::from("com", "simaflux", "tui_bricks")
+#[cfg(not(debug_assertions))]
+pub fn get_default_database_path() -> Result<std::path::PathBuf> {
+    let path = directories::ProjectDirs::from("com", "simaflux", "tui_bricks")
         .map(|dir| dir.data_dir().join("database.yml"))
-        .ok_or(io::Error::new(
-            io::ErrorKind::Other,
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
             "no valid home directory found using the projectdirs crate, can't use/create default database",
         ))?;
 

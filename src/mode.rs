@@ -1,7 +1,11 @@
 use std::fmt;
 
+use crossterm::{cursor, queue, style::Print};
+
 use crate::command::{Cmd, CmdList};
 use crate::data::Item;
+use crate::display;
+use crate::error::Result;
 
 pub enum Mode {
     Default { info: String },
@@ -26,6 +30,29 @@ impl Mode {
                 DeleteItem,
             ]),
         }
+    }
+
+    pub fn emit_mode<W: std::io::Write>(&self, w: &mut W) -> Result<()> {
+        display::clear(w)?;
+        use Mode::*;
+        match self {
+            Default { info } => {
+                display::default_header(w)?;
+                queue!(w, Print(info), cursor::MoveToNextLine(2))?;
+            }
+            DisplayItem { item } => {
+                display::header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
+                display::emit_iter(w, item.to_string().split("\n"))?;
+            }
+            EditItem { item } => {
+                display::header(
+                    w,
+                    &format!("Now editing item with part ID {}", item.get_id()),
+                )?;
+                display::emit_iter(w, item.to_string().split("\n"))?;
+            }
+        }
+        Ok(())
     }
 }
 

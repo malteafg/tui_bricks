@@ -1,16 +1,15 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use crate::input;
-use crate::mode::Mode;
-use crate::{data::Item, error::Result};
-
 use crossterm::{
     cursor::{self, MoveToNextLine},
     queue,
     style::{Print, ResetColor},
     terminal::{self, ClearType},
 };
+
+use crate::input;
+use crate::{data::Item, error::Result};
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
     queue!(w, Print(line), cursor::MoveToNextLine(1))?;
@@ -146,33 +145,4 @@ pub fn construct_item_changes(old: &Item, new: &Item) -> String {
         ));
     }
     diff
-}
-
-pub trait EmitMode {
-    fn emit_mode<W: Write>(&self, w: &mut W) -> Result<()>;
-}
-
-impl EmitMode for Mode {
-    fn emit_mode<W: Write>(&self, w: &mut W) -> Result<()> {
-        clear(w)?;
-        use Mode::*;
-        match self {
-            Default { info } => {
-                default_header(w)?;
-                queue!(w, Print(info), cursor::MoveToNextLine(2))?;
-            }
-            DisplayItem { item } => {
-                header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
-                emit_iter(w, item.to_string().split("\n"))?;
-            }
-            EditItem { item } => {
-                header(
-                    w,
-                    &format!("Now editing item with part ID {}", item.get_id()),
-                )?;
-                emit_iter(w, item.to_string().split("\n"))?;
-            }
-        }
-        Ok(())
-    }
 }

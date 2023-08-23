@@ -153,7 +153,12 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Result<Self> {
+        #[cfg(not(debug_assertions))]
         let db_path = crate::io::get_default_database_path()?;
+
+        #[cfg(debug_assertions)]
+        let db_path = PathBuf::new().join("test_db.yml");
+
         let raw_data = crate::io::read_database_from_path(&db_path)?;
         Ok(Self { raw_data, db_path })
     }

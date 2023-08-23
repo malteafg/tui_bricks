@@ -3,10 +3,9 @@ use std::io::Write;
 
 use crate::command::Cmd;
 use crate::data::{Database, Item, COMP_COLORS};
-use crate::display::EmitMode;
-use crate::display::{self, construct_item_changes};
+use crate::display;
 use crate::error::{Error, Result};
-use crate::input::wait_for_cmdchar;
+use crate::input;
 use crate::mode::Mode;
 
 pub struct State {
@@ -35,7 +34,7 @@ impl State {
 
         w.flush()?;
 
-        let cmd_char = match wait_for_cmdchar() {
+        let cmd_char = match input::wait_for_cmdchar() {
             Ok(c) => c,
             Err(Error::Escape) => return Ok(false),
             Err(e) => return Err(e),
@@ -136,7 +135,7 @@ impl State {
             display::clear(w)?;
             let changes = format!(
                 "Are you sure you want to quit editing and cancel these changes?\n{}",
-                construct_item_changes(old_item, item)
+                display::construct_item_changes(old_item, item)
             );
             if display::confirmation_prompt(w, &changes)? {
                 Ok(Mode::DisplayItem {
