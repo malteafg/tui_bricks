@@ -17,6 +17,9 @@ pub enum Error {
 
     #[error("command {cmd} cannot be executed in mode {mode}")]
     CmdModeMismatch { cmd: String, mode: String },
+
+    #[error("escape was pressed")]
+    Escape,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

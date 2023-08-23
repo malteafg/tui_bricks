@@ -1,13 +1,15 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use crate::{error::Result, io, mode::Mode};
+use crate::error::Result;
+use crate::input;
+use crate::mode::Mode;
 
 use crossterm::{
-    cursor::{self, MoveToNextLine, MoveToPreviousLine},
-    execute, queue,
+    cursor::{self, MoveToNextLine},
+    queue,
     style::{Print, ResetColor},
-    terminal::{self, Clear, ClearType},
+    terminal::{self, ClearType},
 };
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
@@ -46,16 +48,7 @@ pub fn input_u32<W: Write>(w: &mut W, text: &str) -> Result<u32> {
     queue!(w, cursor::Show)?;
     w.flush()?;
 
-    loop {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        if let Ok(u32_input) = input.trim().parse() {
-            queue!(w, cursor::Hide)?;
-            return Ok(u32_input);
-        } else {
-            execute!(w, MoveToPreviousLine(1), Clear(ClearType::CurrentLine))?;
-        }
-    }
+    input::wait_for_u32(w)
 }
 
 pub fn input_string<W: Write>(w: &mut W, text: &str) -> Result<String> {
@@ -63,9 +56,7 @@ pub fn input_string<W: Write>(w: &mut W, text: &str) -> Result<String> {
     queue!(w, cursor::Show)?;
     w.flush()?;
 
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
-    let result = input.trim().to_string();
+    let result = input::wait_for_string(w)?.trim().to_string();
 
     queue!(w, cursor::Hide)?;
     Ok(result)
@@ -77,7 +68,7 @@ pub fn confirmation_prompt<W: Write>(w: &mut W, text: &str) -> Result<bool> {
     w.flush()?;
 
     loop {
-        match io::wait_for_char()? {
+        match input::wait_for_cmdchar()? {
             'y' => return Ok(true),
             'n' => return Ok(false),
             _ => {}
@@ -99,13 +90,13 @@ pub fn select_from_list<W: Write, D: Display + Clone>(
     w.flush()?;
 
     loop {
-        let selected = io::wait_for_char()?;
+        let selected = input::wait_for_cmdchar()?;
+        info!("{selected}");
         for (c, d) in options {
             if *c == selected {
                 return Ok(d.clone());
             }
         }
-        // execute!(w, MoveToPreviousLine(1), Clear(ClearType::CurrentLine))?;
     }
 }
 

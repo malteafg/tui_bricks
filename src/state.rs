@@ -6,7 +6,7 @@ use crate::data::{Database, Item, COMP_COLORS};
 use crate::display;
 use crate::display::EmitMode;
 use crate::error::{Error, Result};
-use crate::io;
+use crate::input::wait_for_cmdchar;
 use crate::mode::Mode;
 
 pub struct State {
@@ -35,7 +35,11 @@ impl State {
 
         w.flush()?;
 
-        let cmd_char = io::wait_for_char()?;
+        let cmd_char = match wait_for_cmdchar() {
+            Ok(c) => c,
+            Err(Error::Escape) => return Ok(false),
+            Err(e) => return Err(e),
+        };
         let Some(cmd) = possible_cmds.get(cmd_char) else {
             self.mode = Mode::Default {
                 info: "executing command failed".to_owned(),
@@ -44,7 +48,7 @@ impl State {
         };
 
         use Cmd::*;
-        self.mode = match cmd {
+        let new_mode = match cmd {
             Quit => {
                 execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
                 return Ok(true);
@@ -58,8 +62,13 @@ impl State {
             RemoveColorGroup => todo!(),
             EditName => self.edit_name(w),
             EditAmount => todo!(),
-        }?;
+        };
 
+        if let Err(Error::Escape) = new_mode {
+            return Ok(false);
+        }
+
+        self.mode = new_mode?;
         return Ok(false);
     }
 

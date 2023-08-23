@@ -2,10 +2,6 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    terminal,
-};
 use directories::ProjectDirs;
 
 use crate::data::RawDatabase;
@@ -42,22 +38,6 @@ pub fn write_database_to_path<P: AsRef<Path>>(path: P, database: &RawDatabase) -
     let file = fs::File::create(path)?;
     serde_yaml::to_writer(file, database)?;
     Ok(())
-}
-
-pub fn wait_for_char() -> Result<char> {
-    terminal::enable_raw_mode()?;
-    loop {
-        if let Ok(Event::Key(KeyEvent {
-            code: KeyCode::Char(c),
-            kind: KeyEventKind::Press,
-            modifiers: _,
-            state: _,
-        })) = event::read()
-        {
-            terminal::disable_raw_mode()?;
-            return Ok(c);
-        }
-    }
 }
 
 #[cfg(test)]
