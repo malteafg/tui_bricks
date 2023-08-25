@@ -11,11 +11,12 @@ use crate::io;
 pub enum ColorGroup {
     All,
     Basic,
-    Nature,
+    Earth,
     Grey,
     Road,
     Nice,
     Translucent,
+    Colorful,
     OtherColorGroup(String),
 }
 
@@ -24,24 +25,27 @@ impl fmt::Display for ColorGroup {
         match self {
             All => write!(f, "All"),
             Basic => write!(f, "Basic"),
-            Nature => write!(f, "Nature"),
+            Earth => write!(f, "Earth"),
             Grey => write!(f, "Grey"),
             Road => write!(f, "Road"),
             Nice => write!(f, "Nice"),
             Translucent => write!(f, "Translucent"),
+            Colorful => write!(f, "Colorful"),
             OtherColorGroup(name) => write!(f, "{}", name),
         }
     }
 }
 
 use ColorGroup::*;
-pub const COMP_COLORS: [(char, ColorGroup); 6] = [
+pub const COMP_COLORS: [(char, ColorGroup); 8] = [
     ('a', All),
     ('b', Basic),
-    ('n', Nature),
+    ('e', Earth),
     ('g', Grey),
     ('r', Road),
+    ('n', Nice),
     ('t', Translucent),
+    ('c', Colorful),
 ];
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -107,14 +111,19 @@ impl Item {
 
 impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut loc_string = "Location of each color group:\n".to_owned();
-        for (color_group, loc) in self.location.iter() {
-            loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
-        }
-
         let name = match &self.name {
             Some(name) => name.to_string(),
             None => "unspecified".to_string(),
+        };
+
+        let altids = if self.alternative_ids.is_empty() {
+            "None".to_string()
+        } else {
+            let mut res = String::new();
+            for id in self.alternative_ids.iter() {
+                res.push_str(&format!("{}, ", id));
+            }
+            res
         };
 
         let amount = match self.amount {
@@ -122,10 +131,15 @@ impl fmt::Display for Item {
             None => "unspecified".to_string(),
         };
 
+        let mut loc_string = "Location of each color group:\n".to_owned();
+        for (color_group, loc) in self.location.iter() {
+            loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
+        }
+
         write!(
             f,
-            "Part ID: {}\nName: {}\nAmount: {}\n{}",
-            self.id, name, amount, loc_string,
+            "Part ID: {}\nAlternative IDs: {}\n\nName: {}\nAmount: {}\n\n{}",
+            self.id, name, altids, amount, loc_string,
         )
     }
 }

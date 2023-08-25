@@ -103,6 +103,7 @@ impl State {
         display::emit_line(w, "Adding a new item to the database")?;
         let part_loc =
             display::input_string(w, &format!("Enter location of group {}:", color_group))?;
+        let part_loc = part_loc.to_uppercase();
 
         let new_item = Item::new(part_id, color_group, part_loc.to_owned());
         self.db.add_item(new_item.clone())?;
@@ -243,6 +244,8 @@ impl State {
 
         let part_loc =
             display::input_string(w, &format!("Enter location of group {}:", color_group))?;
+        let part_loc = part_loc.to_uppercase();
+
         let mut new_item = item.clone();
         new_item.add_color_group(color_group, part_loc);
         Ok(Mode::EditItem { item: new_item })

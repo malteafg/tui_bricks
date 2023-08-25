@@ -1,10 +1,24 @@
 use std::fmt;
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum AddToItem {
+    ColorGroup,
+    AlternativeId,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum Search {
+    PartID,
+    Name,
+    Location,
+}
+
 /// Appearence order is as the order is written in code.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Cmd {
     AddItem,
     SearchItem,
+    // SearchItem(Search),
     Quit,
     Edit,
     SaveEdit,
