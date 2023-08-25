@@ -9,7 +9,7 @@ use crate::error::Result;
 
 pub enum Mode {
     Default { info: String },
-    DisplayItem { item: Item },
+    DisplayItem { item: Item, msg: Option<String> },
     EditItem { item: Item },
 }
 
@@ -40,8 +40,12 @@ impl Mode {
                 display::default_header(w)?;
                 queue!(w, Print(info), cursor::MoveToNextLine(2))?;
             }
-            DisplayItem { item } => {
-                display::header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
+            DisplayItem { item, msg } => {
+                if let Some(msg) = msg {
+                    display::header(w, msg)?;
+                } else {
+                    display::header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
+                }
                 display::emit_iter(w, item.to_string().split("\n"))?;
             }
             EditItem { item } => {

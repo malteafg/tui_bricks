@@ -23,6 +23,17 @@ fn get_user_db_path() -> Result<PathBuf> {
     Ok(config.get_db_path())
 }
 
+fn quit<W: std::io::Write>(w: &mut W) -> Result<()> {
+    terminal::disable_raw_mode()?;
+    execute!(
+        w,
+        style::ResetColor,
+        cursor::Show,
+        terminal::LeaveAlternateScreen
+    )?;
+    Ok(())
+}
+
 pub fn run<W>(w: &mut W) -> Result<()>
 where
     W: std::io::Write,
@@ -39,20 +50,18 @@ where
     terminal::enable_raw_mode()?;
 
     loop {
-        if state.accept_cmd(w)? {
-            break;
+        match state.accept_cmd(w) {
+            Ok(true) => {
+                quit(w)?;
+                return Ok(());
+            }
+            Ok(false) => {}
+            Err(e) => {
+                quit(w)?;
+                return Err(e);
+            }
         }
     }
-
-    terminal::disable_raw_mode()?;
-    execute!(
-        w,
-        style::ResetColor,
-        cursor::Show,
-        terminal::LeaveAlternateScreen
-    )?;
-
-    Ok(())
 }
 
 fn main() -> tui_bricks::error::Result<()> {

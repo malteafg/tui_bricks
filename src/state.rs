@@ -79,6 +79,18 @@ impl State {
         display::emit_line(w, "Adding a new item to the database")?;
         let part_id = display::input_u32(w, "Enter the part ID of the new item")?;
 
+        if self.db.contains(part_id) {
+            let item = self.db.get_item(part_id)?;
+            let msg = Some(format!(
+                "Item with ID {} already exists in database",
+                part_id
+            ));
+            return Ok(Mode::DisplayItem {
+                item: item.clone(),
+                msg,
+            });
+        }
+
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
         let color_group = display::select_from_list(
@@ -94,7 +106,10 @@ impl State {
 
         let new_item = Item::new(part_id, color_group, part_loc.to_owned());
         self.db.add_item(new_item.clone())?;
-        Ok(Mode::DisplayItem { item: new_item })
+        Ok(Mode::DisplayItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn search_item<W: Write>(&self, w: &mut W) -> Result<Mode> {
@@ -102,7 +117,10 @@ impl State {
         let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
 
         if let Ok(item) = self.db.get_item(searched_id) {
-            return Ok(Mode::DisplayItem { item: item.clone() });
+            return Ok(Mode::DisplayItem {
+                item: item.clone(),
+                msg: None,
+            });
         }
 
         Ok(Mode::Default {
@@ -111,7 +129,7 @@ impl State {
     }
 
     fn edit_item(&self) -> Result<Mode> {
-        let Mode::DisplayItem { item } = &self.mode else {
+        let Mode::DisplayItem { item, msg: _ } = &self.mode else {
             return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
         Ok(Mode::EditItem { item: item.clone() })
@@ -122,7 +140,10 @@ impl State {
             return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
         self.db.update_item(item.clone())?;
-        Ok(Mode::DisplayItem { item: item.clone() })
+        Ok(Mode::DisplayItem {
+            item: item.clone(),
+            msg: None,
+        })
     }
 
     fn cancel_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
@@ -132,7 +153,10 @@ impl State {
 
         let old_item = self.db.get_item(item.get_id())?;
         if old_item == item {
-            Ok(Mode::DisplayItem { item: item.clone() })
+            Ok(Mode::DisplayItem {
+                item: item.clone(),
+                msg: None,
+            })
         } else {
             display::clear(w)?;
             let changes = format!(
@@ -142,6 +166,7 @@ impl State {
             if display::confirmation_prompt(w, &changes)? {
                 Ok(Mode::DisplayItem {
                     item: old_item.clone(),
+                    msg: None,
                 })
             } else {
                 Ok(Mode::EditItem { item: item.clone() })
