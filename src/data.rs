@@ -14,6 +14,7 @@ pub enum ColorGroup {
     Nature,
     Grey,
     Road,
+    Nice,
     Translucent,
     OtherColorGroup(String),
 }
@@ -26,6 +27,7 @@ impl fmt::Display for ColorGroup {
             Nature => write!(f, "Nature"),
             Grey => write!(f, "Grey"),
             Road => write!(f, "Road"),
+            Nice => write!(f, "Nice"),
             Translucent => write!(f, "Translucent"),
             OtherColorGroup(name) => write!(f, "{}", name),
         }
