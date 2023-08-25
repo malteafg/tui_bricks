@@ -42,9 +42,9 @@ impl State {
             Err(e) => return Err(e),
         };
         let Some(cmd) = possible_cmds.get(cmd_char) else {
-            self.mode = Mode::Default {
-                info: "executing command failed".to_owned(),
-            };
+            // self.mode = Mode::Default {
+            //     info: "executing command failed".to_owned(),
+            // };
             return Ok(false);
         };
 

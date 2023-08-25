@@ -41,7 +41,7 @@ impl Cmd {
             SearchItem => "search for the given (p)art by its id",
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
-            SaveEdit => "(s)ave the current changes",
+            SaveEdit => "(s)ave the current changes and quit editing",
             QuitEdit => "(q)uit editing this part without saving changes currently made",
             AddColorGroup => "(a)dd a new color group and its location for this item",
             RemoveColorGroup => "(r)emove a color group and its location for this item",
