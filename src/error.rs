@@ -20,6 +20,9 @@ pub enum Error {
 
     #[error("escape was pressed")]
     Escape,
+
+    #[error("could not convert an os string into a string")]
+    OsStringFailed,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

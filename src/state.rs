@@ -1,5 +1,7 @@
-use crossterm::{cursor, execute, queue};
 use std::io::Write;
+use std::path::PathBuf;
+
+use crossterm::{cursor, execute, queue};
 
 use crate::command::Cmd;
 use crate::data::{Database, Item, COMP_COLORS};
@@ -14,8 +16,8 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Result<Self> {
-        let db = Database::new()?;
+    pub fn new(db_path: PathBuf) -> Result<Self> {
+        let db = Database::new(db_path)?;
         let mode = Mode::Default {
             info: "Type any of the following characters to execute the associated command"
                 .to_owned(),

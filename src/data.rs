@@ -1,6 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::io::ErrorKind;
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::io;
@@ -126,7 +128,7 @@ impl fmt::Display for Item {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct RawDatabase {
     items: Vec<Item>,
 }
@@ -152,27 +154,21 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Result<Self> {
-        #[cfg(not(debug_assertions))]
-        let db_path = crate::io::get_default_database_path()?;
-
-        #[cfg(debug_assertions)]
-        let db_path = PathBuf::new().join("test_db.yml");
-
-        let raw_data = crate::io::read_database_from_path(&db_path)?;
-        Ok(Self { raw_data, db_path })
-    }
-
-    /// Creates a new state with a database from the given path.
-    pub fn _from_path<P>(_path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
-        todo!();
+    pub fn new(db_path: PathBuf) -> Result<Self> {
+        match io::read_contents_from_path(&db_path) {
+            Ok(raw_data) => Ok(Self { raw_data, db_path }),
+            Err(Error::IOError(io_error)) if io_error.kind() == ErrorKind::NotFound => {
+                let raw_data = RawDatabase::default();
+                let db = Self { raw_data, db_path };
+                db.write()?;
+                Ok(db)
+            }
+            Err(e) => return Err(e),
+        }
     }
 
     pub fn write(&self) -> Result<()> {
-        io::write_database_to_path(&self.db_path, &self.raw_data)
+        io::write_contents_to_path(&self.db_path, &self.raw_data)
     }
 
     pub fn add_item(&mut self, item: Item) -> Result<()> {
