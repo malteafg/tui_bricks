@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crossterm::{cursor, execute, queue};
 
-use crate::command::Cmd;
+use crate::command::{Cmd, MultiCmd};
 use crate::data::{Database, Item, COMP_COLORS};
 use crate::display;
 use crate::error::{Error, Result};
@@ -25,7 +25,7 @@ impl State {
         Ok(Self { db, mode })
     }
 
-    pub fn accept_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<bool> {
+    pub fn accept_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<()> {
         self.mode.emit_mode(w)?;
 
         let possible_cmds = self.mode.get_possible_cmds();
@@ -38,40 +38,75 @@ impl State {
 
         let cmd_char = match input::wait_for_cmdchar() {
             Ok(c) => c,
-            Err(Error::Escape) => return Ok(false),
+            Err(Error::Escape) => return Ok(()),
             Err(e) => return Err(e),
         };
+
         let Some(cmd) = possible_cmds.get(cmd_char) else {
-            // self.mode = Mode::Default {
-            //     info: "executing command failed".to_owned(),
-            // };
-            return Ok(false);
+            return Ok(());
         };
 
-        use Cmd::*;
-        let new_mode = match cmd {
-            Quit => {
-                execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
-                return Ok(true);
-            }
-            AddItem => self.add_item(w),
-            SearchItem => self.search_item(w),
-            Edit => self.edit_item(),
-            QuitEdit => self.cancel_edit(w),
-            SaveEdit => self.save_edit(),
-            AddColorGroup => self.add_color_group(w),
-            RemoveColorGroup => self.remove_color_group(w),
-            EditName => self.edit_name(w),
-            EditAmount => self.edit_amount(w),
-            DeleteItem => self.delete_item(w),
-        };
+        let new_mode = self.execute_cmd(w, cmd);
 
         if let Err(Error::Escape) = new_mode {
-            return Ok(false);
+            return Ok(());
         }
 
         self.mode = new_mode?;
-        return Ok(false);
+        return Ok(());
+    }
+
+    fn accept_multi_cmd<W: std::io::Write>(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
+        display::clear(w)?;
+        display::emit_line(w, m_cmd.get_header())?;
+
+        let possible_cmds = m_cmd.get_possible_cmds();
+        display::emit_dash(w)?;
+        queue!(w, cursor::MoveToNextLine(1))?;
+        display::emit_iter(w, possible_cmds.iter())?;
+
+        w.flush()?;
+
+        let cmd_char = match input::wait_for_cmdchar() {
+            Ok(c) => c,
+            Err(Error::Escape) => return Err(Error::Escape),
+            Err(e) => return Err(e),
+        };
+
+        let Some(cmd) = possible_cmds.get(cmd_char) else {
+            return self.accept_multi_cmd(w, m_cmd);
+        };
+
+        self.execute_cmd(w, cmd)
+    }
+
+    fn execute_cmd<W: std::io::Write>(&mut self, w: &mut W, cmd: Cmd) -> Result<Mode> {
+        use Cmd::*;
+        match cmd {
+            Quit => {
+                execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
+                return Err(Error::Quit);
+            }
+            AddItem => self.add_item(w),
+            Edit => self.edit_item(),
+            QuitEdit => self.cancel_edit(w),
+            SaveEdit => self.save_edit(),
+            EditName => self.edit_name(w),
+            EditAmount => self.edit_amount(w),
+            DeleteItem => self.delete_item(w),
+
+            MCmd(m_cmd) => self.accept_multi_cmd(w, m_cmd),
+
+            AddColorGroup => self.add_color_group(w),
+            AddAltId => todo!(),
+
+            RemoveColorGroup => self.remove_color_group(w),
+            RemoveAltId => todo!(),
+
+            SearchPartID => self.search_item(w),
+            SearchName => todo!(),
+            SearchLocation => todo!(),
+        }
     }
 
     fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {

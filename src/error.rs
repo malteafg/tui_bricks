@@ -7,6 +7,8 @@ pub enum Error {
     #[error("yaml serialization error")]
     SerdeError(#[from] serde_yaml::Error),
 
+    #[error("could not convert an os string into a string")]
+    OsStringFailed,
     #[error("parsing error")]
     ParsingError(#[from] std::num::ParseIntError),
 
@@ -20,9 +22,8 @@ pub enum Error {
 
     #[error("escape was pressed")]
     Escape,
-
-    #[error("could not convert an os string into a string")]
-    OsStringFailed,
+    #[error("signal to quit program was sent")]
+    Quit,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

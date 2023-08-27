@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crossterm::{cursor, execute, style, terminal};
 
-use tui_bricks::error::Result;
+use tui_bricks::error::{Error, Result};
 use tui_bricks::state::State;
 
 #[cfg(not(debug_assertions))]
@@ -51,11 +51,11 @@ where
 
     loop {
         match state.accept_cmd(w) {
-            Ok(true) => {
+            Ok(()) => {}
+            Err(Error::Quit) => {
                 quit(w)?;
                 return Ok(());
             }
-            Ok(false) => {}
             Err(e) => {
                 quit(w)?;
                 return Err(e);

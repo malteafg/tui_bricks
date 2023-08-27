@@ -2,7 +2,7 @@ use std::fmt;
 
 use crossterm::{cursor, queue, style::Print};
 
-use crate::command::{Cmd, CmdList};
+use crate::command::{Cmd, CmdList, MultiCmd};
 use crate::data::Item;
 use crate::display;
 use crate::error::Result;
@@ -18,15 +18,17 @@ impl Mode {
         use Cmd::*;
         use Mode::*;
         match self {
-            Default { .. } => CmdList::new(vec![AddItem, SearchItem, Quit]),
-            DisplayItem { .. } => CmdList::new(vec![AddItem, SearchItem, Quit, Edit]),
+            Default { .. } => CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit]),
+            DisplayItem { .. } => {
+                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit, Edit])
+            }
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
                 QuitEdit,
                 EditName,
                 EditAmount,
-                RemoveColorGroup,
-                AddColorGroup,
+                MCmd(MultiCmd::AddToItem),
+                MCmd(MultiCmd::RemoveFromItem),
                 DeleteItem,
             ]),
         }

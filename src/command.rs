@@ -1,33 +1,36 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum AddToItem {
-    ColorGroup,
-    AlternativeId,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum Search {
-    PartID,
-    Name,
-    Location,
-}
-
 /// Appearence order is as the order is written in code.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Cmd {
     AddItem,
-    SearchItem,
-    // SearchItem(Search),
+    DeleteItem,
+
     Quit,
     Edit,
     SaveEdit,
     QuitEdit,
-    AddColorGroup,
-    RemoveColorGroup,
     EditName,
     EditAmount,
-    DeleteItem,
+
+    MCmd(MultiCmd),
+
+    AddColorGroup,
+    AddAltId,
+
+    RemoveColorGroup,
+    RemoveAltId,
+
+    SearchPartID,
+    SearchName,
+    SearchLocation,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum MultiCmd {
+    SearchItem,
+    AddToItem,
+    RemoveFromItem,
 }
 
 impl Cmd {
@@ -35,16 +38,25 @@ impl Cmd {
         use Cmd::*;
         match &self {
             AddItem => 'a',
-            SearchItem => 'p',
             Quit => 'q',
             Edit => 'e',
             SaveEdit => 's',
             QuitEdit => 'q',
-            AddColorGroup => 'a',
-            RemoveColorGroup => 'r',
             EditName => 'n',
             EditAmount => 'm',
             DeleteItem => 'd',
+
+            MCmd(m_cmd) => m_cmd.get_char(),
+
+            AddColorGroup => 'c',
+            AddAltId => 'i',
+
+            RemoveColorGroup => 'c',
+            RemoveAltId => 'i',
+
+            SearchPartID => 'i',
+            SearchName => 'n',
+            SearchLocation => 'l',
         }
     }
 
@@ -52,21 +64,77 @@ impl Cmd {
         use Cmd::*;
         match &self {
             AddItem => "(a)dd a new item to the menu",
-            SearchItem => "search for the given (p)art by its id",
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
             SaveEdit => "(s)ave the current changes and quit editing",
             QuitEdit => "(q)uit editing this part without saving changes currently made",
-            AddColorGroup => "(a)dd a new color group and its location for this item",
-            RemoveColorGroup => "(r)emove a color group and its location for this item",
             EditName => "edit the (n)ame of this part",
             EditAmount => "edit the a(m)ount of this part",
             DeleteItem => "(d)elete the current item",
+            MCmd(m_cmd) => m_cmd.get_info(),
+
+            AddColorGroup => "add a new (c)olor group and its location for this item",
+            AddAltId => "add a new alternative (i)d for this item",
+
+            RemoveColorGroup => "remove a (c)olor group and its location for this item",
+            RemoveAltId => "remove an alternative (i)d for this item",
+
+            SearchPartID => "search by part (i)d",
+            SearchName => "search by (n)ame",
+            SearchLocation => "search by (l)ocation",
         }
     }
 }
 
 impl fmt::Display for Cmd {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.get_char(), self.get_info())
+    }
+}
+
+impl MultiCmd {
+    pub fn get_possible_cmds(&self) -> CmdList {
+        use MultiCmd::*;
+        match &self {
+            SearchItem => CmdList::new(vec![
+                Cmd::SearchPartID,
+                Cmd::SearchName,
+                Cmd::SearchLocation,
+            ]),
+            AddToItem => CmdList::new(vec![Cmd::AddColorGroup, Cmd::AddAltId]),
+            RemoveFromItem => CmdList::new(vec![Cmd::RemoveColorGroup, Cmd::RemoveAltId]),
+        }
+    }
+
+    pub fn get_header(&self) -> &str {
+        use MultiCmd::*;
+        match &self {
+            SearchItem => "What do you want to search by?",
+            AddToItem => "What would you like to add to this item?",
+            RemoveFromItem => "What would you like to remove to this item?",
+        }
+    }
+
+    pub fn get_char(&self) -> char {
+        use MultiCmd::*;
+        match &self {
+            SearchItem => 's',
+            AddToItem => 'a',
+            RemoveFromItem => 'r',
+        }
+    }
+
+    pub fn get_info(&self) -> &str {
+        use MultiCmd::*;
+        match &self {
+            SearchItem => "(s)earch for an item",
+            AddToItem => "(a)dd something to an item",
+            RemoveFromItem => "(r)emove something from an item",
+        }
+    }
+}
+
+impl fmt::Display for MultiCmd {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.get_char(), self.get_info())
     }
