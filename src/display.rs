@@ -110,39 +110,3 @@ pub fn clear<W: Write>(w: &mut W) -> Result<()> {
 
     Ok(())
 }
-
-pub fn construct_item_changes(old: &Item, new: &Item) -> String {
-    let mut diff = String::new();
-    if old.get_id() != new.get_id() {
-        diff.push_str(&format!("Part ID: {} -> {}\n", old.get_id(), new.get_id()));
-    }
-    if old.get_alternative_ids() != new.get_alternative_ids() {
-        diff.push_str(&format!(
-            "Alternative IDs: {} -> {}\n",
-            old.get_id(),
-            new.get_id()
-        ));
-    }
-    if old.get_name() != new.get_name() {
-        diff.push_str(&format!(
-            "Name: {:#?} -> {:#?}\n",
-            old.get_name(),
-            new.get_name()
-        ));
-    }
-    if old.get_amount() != new.get_amount() {
-        diff.push_str(&format!(
-            "Amount: {:#?} -> {:#?}\n",
-            old.get_amount(),
-            new.get_amount()
-        ));
-    }
-    if old.get_location() != new.get_location() {
-        diff.push_str(&format!(
-            "Locations: {:#?} -> {:#?}\n",
-            old.get_location(),
-            new.get_location()
-        ));
-    }
-    diff
-}

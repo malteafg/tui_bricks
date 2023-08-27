@@ -50,7 +50,7 @@ where
     terminal::enable_raw_mode()?;
 
     loop {
-        match state.accept_cmd(w) {
+        match state.wait_for_cmd(w) {
             Ok(()) => {}
             Err(Error::Quit) => {
                 quit(w)?;

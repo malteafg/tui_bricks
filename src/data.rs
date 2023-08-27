@@ -107,6 +107,54 @@ impl Item {
     pub fn remove_color_group(&mut self, color_group: ColorGroup) {
         self.location.retain(|(c, _)| *c != color_group);
     }
+
+    pub fn add_alt_id(&mut self, id: u32) {
+        self.alternative_ids.push(id);
+    }
+
+    pub fn remove_alt_id(&mut self, id: u32) {
+        self.alternative_ids.retain(|old_id| id != *old_id);
+    }
+
+    pub fn diff(&self, other: &Item) -> String {
+        let mut diff = String::new();
+        if self.get_id() != other.get_id() {
+            diff.push_str(&format!(
+                "Part ID: {} -> {}\n",
+                self.get_id(),
+                other.get_id()
+            ));
+        }
+        if self.get_alternative_ids() != other.get_alternative_ids() {
+            diff.push_str(&format!(
+                "Alternative IDs: {:#?} -> {:#?}\n",
+                self.get_alternative_ids(),
+                other.get_alternative_ids()
+            ));
+        }
+        if self.get_name() != other.get_name() {
+            diff.push_str(&format!(
+                "Name: {:#?} -> {:#?}\n",
+                self.get_name(),
+                other.get_name()
+            ));
+        }
+        if self.get_amount() != other.get_amount() {
+            diff.push_str(&format!(
+                "Amount: {:#?} -> {:#?}\n",
+                self.get_amount(),
+                other.get_amount()
+            ));
+        }
+        if self.get_location() != other.get_location() {
+            diff.push_str(&format!(
+                "Locations: {:#?} -> {:#?}\n",
+                self.get_location(),
+                other.get_location()
+            ));
+        }
+        diff
+    }
 }
 
 impl fmt::Display for Item {
@@ -139,7 +187,7 @@ impl fmt::Display for Item {
         write!(
             f,
             "Part ID: {}\nAlternative IDs: {}\n\nName: {}\nAmount: {}\n\n{}",
-            self.id, name, altids, amount, loc_string,
+            self.id, altids, name, amount, loc_string,
         )
     }
 }

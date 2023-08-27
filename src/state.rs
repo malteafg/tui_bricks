@@ -25,7 +25,7 @@ impl State {
         Ok(Self { db, mode })
     }
 
-    pub fn accept_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<()> {
+    pub fn wait_for_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<()> {
         self.mode.emit_mode(w)?;
 
         let possible_cmds = self.mode.get_possible_cmds();
@@ -56,7 +56,7 @@ impl State {
         return Ok(());
     }
 
-    fn accept_multi_cmd<W: std::io::Write>(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
+    fn handle_multi_cmd<W: std::io::Write>(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
         display::clear(w)?;
         display::emit_line(w, m_cmd.get_header())?;
 
@@ -74,7 +74,7 @@ impl State {
         };
 
         let Some(cmd) = possible_cmds.get(cmd_char) else {
-            return self.accept_multi_cmd(w, m_cmd);
+            return self.handle_multi_cmd(w, m_cmd);
         };
 
         self.execute_cmd(w, cmd)
@@ -95,15 +95,15 @@ impl State {
             EditAmount => self.edit_amount(w),
             DeleteItem => self.delete_item(w),
 
-            MCmd(m_cmd) => self.accept_multi_cmd(w, m_cmd),
+            MCmd(m_cmd) => self.handle_multi_cmd(w, m_cmd),
 
             AddColorGroup => self.add_color_group(w),
-            AddAltId => todo!(),
+            AddAltId => self.add_alt_id(w),
 
             RemoveColorGroup => self.remove_color_group(w),
-            RemoveAltId => todo!(),
+            RemoveAltId => self.remove_alt_id(w),
 
-            SearchPartID => self.search_item(w),
+            SearchPartID => self.search_by_id(w),
             SearchName => todo!(),
             SearchLocation => todo!(),
         }
@@ -148,7 +148,7 @@ impl State {
         })
     }
 
-    fn search_item<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn search_by_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
 
@@ -197,7 +197,7 @@ impl State {
             display::clear(w)?;
             let changes = format!(
                 "Are you sure you want to quit editing and cancel these changes?\n{}",
-                display::construct_item_changes(old_item, item)
+                old_item.diff(item)
             );
             if display::confirmation_prompt(w, &changes)? {
                 Ok(Mode::DisplayItem {
@@ -316,17 +316,39 @@ impl State {
         Ok(Mode::EditItem { item: new_item })
     }
 
+    fn add_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        let new_id =
+            display::input_u32(w, "Enter the new alternative part ID to add to this item")?;
+
+        let mut new_item = item.clone();
+        new_item.add_alt_id(new_id);
+        Ok(Mode::EditItem { item: new_item })
+    }
+
+    fn remove_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem { item } = &self.mode else {
+            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+        };
+
+        todo!();
+    }
+
     fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
             return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
         };
 
         display::clear(w)?;
+        display::emit_iter(w, item.to_string().split("\n"))?;
+
         let changes = format!(
             "Are you absolutely sure that you want to delete the item with ID: {}?\n",
             item.get_id(),
         );
-        display::emit_iter(w, item.to_string().split("\n"))?;
 
         if display::confirmation_prompt(w, &changes)? {
             self.db.remove_item(item.get_id())?;
