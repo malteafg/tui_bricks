@@ -1,13 +1,27 @@
+use std::collections::BTreeSet;
 use std::fmt;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 
+use crate::command::CmdChar;
 use crate::error::{Error, Result};
 use crate::io;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    EnumIter,
+    Ord,
+    PartialOrd,
+)]
 pub enum ColorGroup {
     All,
     Basic,
@@ -17,11 +31,27 @@ pub enum ColorGroup {
     Nice,
     Translucent,
     Colorful,
-    OtherColorGroup(String),
+}
+
+impl CmdChar for ColorGroup {
+    fn get_char(&self) -> char {
+        use ColorGroup::*;
+        match self {
+            All => 'a',
+            Basic => 'b',
+            Earth => 'e',
+            Grey => 'g',
+            Road => 'r',
+            Nice => 'n',
+            Translucent => 't',
+            Colorful => 'c',
+        }
+    }
 }
 
 impl fmt::Display for ColorGroup {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use ColorGroup::*;
         match self {
             All => write!(f, "All"),
             Basic => write!(f, "Basic"),
@@ -31,22 +61,9 @@ impl fmt::Display for ColorGroup {
             Nice => write!(f, "Nice"),
             Translucent => write!(f, "Translucent"),
             Colorful => write!(f, "Colorful"),
-            OtherColorGroup(name) => write!(f, "{}", name),
         }
     }
 }
-
-use ColorGroup::*;
-pub const COMP_COLORS: [(char, ColorGroup); 8] = [
-    ('a', All),
-    ('b', Basic),
-    ('e', Earth),
-    ('g', Grey),
-    ('r', Road),
-    ('n', Nice),
-    ('t', Translucent),
-    ('c', Colorful),
-];
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Item {
@@ -100,7 +117,15 @@ impl Item {
         self.amount = amount;
     }
 
-    pub fn add_color_group(&mut self, color_group: ColorGroup, location: String) {
+    pub fn get_color_set(&self) -> BTreeSet<ColorGroup> {
+        self.location.iter().map(|(c, _)| *c).collect()
+    }
+
+    pub fn add_color_group(
+        &mut self,
+        color_group: ColorGroup,
+        location: String,
+    ) {
         self.location.push((color_group, location))
     }
 
@@ -181,7 +206,11 @@ impl fmt::Display for Item {
 
         let mut loc_string = "Location of each color group:\n".to_owned();
         for (color_group, loc) in self.location.iter() {
-            loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
+            loc_string.push_str(&format!(
+                "{}: {}\n",
+                color_group.to_string(),
+                loc
+            ));
         }
 
         write!(
@@ -221,7 +250,9 @@ impl Database {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         match io::read_contents_from_path(&db_path) {
             Ok(raw_data) => Ok(Self { raw_data, db_path }),
-            Err(Error::IOError(io_error)) if io_error.kind() == ErrorKind::NotFound => {
+            Err(Error::IOError(io_error))
+                if io_error.kind() == ErrorKind::NotFound =>
+            {
                 let raw_data = RawDatabase::default();
                 let db = Self { raw_data, db_path };
                 db.write()?;
@@ -304,7 +335,10 @@ pub mod tests {
             alternative_ids: vec![123, 1324],
             name: Some(String::from_str("Testid").unwrap()),
             amount: None,
-            location: vec![(ColorGroup::All, String::from_str("B1A3").unwrap())],
+            location: vec![(
+                ColorGroup::All,
+                String::from_str("B1A3").unwrap(),
+            )],
         };
 
         let item2 = Item {
@@ -312,7 +346,10 @@ pub mod tests {
             alternative_ids: vec![12, 14],
             name: Some(String::from_str("blah blah").unwrap()),
             amount: None,
-            location: vec![(ColorGroup::All, String::from_str("B1A4").unwrap())],
+            location: vec![(
+                ColorGroup::All,
+                String::from_str("B1A4").unwrap(),
+            )],
         };
 
         let test = RawDatabase {

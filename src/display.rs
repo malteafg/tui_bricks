@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fmt::Display;
 use std::io::Write;
 
@@ -9,7 +10,7 @@ use crossterm::{
 };
 
 use crate::input;
-use crate::{data::Item, error::Result};
+use crate::{command::CmdChar, error::Result};
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
     queue!(w, Print(line), cursor::MoveToNextLine(1))?;
@@ -34,7 +35,10 @@ pub fn default_header<W: Write>(w: &mut W) -> Result<()> {
     Ok(())
 }
 
-pub fn emit_iter<W: Write, D: Display>(w: &mut W, iter: impl Iterator<Item = D>) -> Result<()> {
+pub fn emit_iter<W: Write, D: Display>(
+    w: &mut W,
+    iter: impl Iterator<Item = D>,
+) -> Result<()> {
     for line in iter {
         queue!(w, Print(line), cursor::MoveToNextLine(1))?;
     }
@@ -75,25 +79,24 @@ pub fn confirmation_prompt<W: Write>(w: &mut W, text: &str) -> Result<bool> {
     }
 }
 
-pub fn select_from_list<W: Write, D: Display + Clone>(
+pub fn select_from_list<W: Write, D: Display + Clone + CmdChar>(
     w: &mut W,
     text: &str,
-    options: &[(char, D)],
+    options: &BTreeSet<D>,
 ) -> Result<D> {
     emit_iter(w, text.split("\n"))?;
     emit_line(w, "Select from the list by typing the letter")?;
     queue!(w, MoveToNextLine(1))?;
-    for (c, d) in options {
-        emit_line(w, &format!("{}: {}", c, d.to_string()))?;
+    for x in options.iter() {
+        emit_line(w, &format!("{}: {}", x.get_char(), x.to_string()))?;
     }
     w.flush()?;
 
     loop {
         let selected = input::wait_for_cmdchar()?;
-        info!("{selected}");
-        for (c, d) in options {
-            if *c == selected {
-                return Ok(d.clone());
+        for x in options.iter() {
+            if x.get_char() == selected {
+                return Ok(x.clone());
             }
         }
     }

@@ -1,5 +1,9 @@
 use std::fmt;
 
+pub trait CmdChar {
+    fn get_char(&self) -> char;
+}
+
 /// Appearence order is as the order is written in code.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Cmd {
@@ -33,8 +37,8 @@ pub enum MultiCmd {
     RemoveFromItem,
 }
 
-impl Cmd {
-    pub fn get_char(&self) -> char {
+impl CmdChar for Cmd {
+    fn get_char(&self) -> char {
         use Cmd::*;
         match &self {
             AddItem => 'a',
@@ -59,7 +63,9 @@ impl Cmd {
             SearchLocation => 'l',
         }
     }
+}
 
+impl Cmd {
     pub fn get_info(&self) -> &str {
         use Cmd::*;
         match &self {
@@ -67,16 +73,22 @@ impl Cmd {
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
             SaveEdit => "(s)ave the current changes and quit editing",
-            QuitEdit => "(q)uit editing this part without saving changes currently made",
+            QuitEdit => {
+                "(q)uit editing this part without saving changes currently made"
+            }
             EditName => "edit the (n)ame of this part",
             EditAmount => "edit the a(m)ount of this part",
             DeleteItem => "(d)elete the current item",
             MCmd(m_cmd) => m_cmd.get_info(),
 
-            AddColorGroup => "add a new (c)olor group and its location for this item",
+            AddColorGroup => {
+                "add a new (c)olor group and its location for this item"
+            }
             AddAltId => "add a new alternative (i)d for this item",
 
-            RemoveColorGroup => "remove a (c)olor group and its location for this item",
+            RemoveColorGroup => {
+                "remove a (c)olor group and its location for this item"
+            }
             RemoveAltId => "remove an alternative (i)d for this item",
 
             SearchPartID => "search by part (i)d",
@@ -92,6 +104,17 @@ impl fmt::Display for Cmd {
     }
 }
 
+impl CmdChar for MultiCmd {
+    fn get_char(&self) -> char {
+        use MultiCmd::*;
+        match &self {
+            SearchItem => 's',
+            AddToItem => 'a',
+            RemoveFromItem => 'r',
+        }
+    }
+}
+
 impl MultiCmd {
     pub fn get_possible_cmds(&self) -> CmdList {
         use MultiCmd::*;
@@ -102,7 +125,9 @@ impl MultiCmd {
                 Cmd::SearchLocation,
             ]),
             AddToItem => CmdList::new(vec![Cmd::AddColorGroup, Cmd::AddAltId]),
-            RemoveFromItem => CmdList::new(vec![Cmd::RemoveColorGroup, Cmd::RemoveAltId]),
+            RemoveFromItem => {
+                CmdList::new(vec![Cmd::RemoveColorGroup, Cmd::RemoveAltId])
+            }
         }
     }
 
@@ -112,15 +137,6 @@ impl MultiCmd {
             SearchItem => "What do you want to search by?",
             AddToItem => "What would you like to add to this item?",
             RemoveFromItem => "What would you like to remove to this item?",
-        }
-    }
-
-    pub fn get_char(&self) -> char {
-        use MultiCmd::*;
-        match &self {
-            SearchItem => 's',
-            AddToItem => 'a',
-            RemoveFromItem => 'r',
         }
     }
 

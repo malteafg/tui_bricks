@@ -18,10 +18,15 @@ impl Mode {
         use Cmd::*;
         use Mode::*;
         match self {
-            Default { .. } => CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit]),
-            DisplayItem { .. } => {
-                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit, Edit])
+            Default { .. } => {
+                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit])
             }
+            DisplayItem { .. } => CmdList::new(vec![
+                AddItem,
+                MCmd(MultiCmd::SearchItem),
+                Quit,
+                Edit,
+            ]),
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
                 QuitEdit,
@@ -46,7 +51,10 @@ impl Mode {
                 if let Some(msg) = msg {
                     display::header(w, msg)?;
                 } else {
-                    display::header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
+                    display::header(
+                        w,
+                        &format!("Viewing item with part ID {}", item.get_id()),
+                    )?;
                 }
                 display::emit_iter(w, item.to_string().split("\n"))?;
             }

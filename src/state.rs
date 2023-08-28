@@ -1,14 +1,25 @@
+use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::PathBuf;
 
 use crossterm::{cursor, execute, queue};
+use strum::IntoEnumIterator;
 
 use crate::command::{Cmd, MultiCmd};
-use crate::data::{Database, Item, COMP_COLORS};
+use crate::data::{ColorGroup, Database, Item};
 use crate::display;
 use crate::error::{Error, Result};
 use crate::input;
 use crate::mode::Mode;
+
+macro_rules! bail {
+    ( $self:expr, $c:ident ) => {
+        return Err(crate::error::Error::CmdModeMismatch {
+            cmd: crate::command::Cmd::$c.to_string(),
+            mode: $self.mode.to_string(),
+        })
+    };
+}
 
 pub struct State {
     db: Database,
@@ -56,7 +67,11 @@ impl State {
         return Ok(());
     }
 
-    fn handle_multi_cmd<W: std::io::Write>(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
+    fn handle_multi_cmd<W: std::io::Write>(
+        &mut self,
+        w: &mut W,
+        m_cmd: MultiCmd,
+    ) -> Result<Mode> {
         display::clear(w)?;
         display::emit_line(w, m_cmd.get_header())?;
 
@@ -80,7 +95,11 @@ impl State {
         self.execute_cmd(w, cmd)
     }
 
-    fn execute_cmd<W: std::io::Write>(&mut self, w: &mut W, cmd: Cmd) -> Result<Mode> {
+    fn execute_cmd<W: std::io::Write>(
+        &mut self,
+        w: &mut W,
+        cmd: Cmd,
+    ) -> Result<Mode> {
         use Cmd::*;
         match cmd {
             Quit => {
@@ -89,7 +108,7 @@ impl State {
             }
             AddItem => self.add_item(w),
             Edit => self.edit_item(),
-            QuitEdit => self.cancel_edit(w),
+            QuitEdit => self.quit_edit(w),
             SaveEdit => self.save_edit(),
             EditName => self.edit_name(w),
             EditAmount => self.edit_amount(w),
@@ -112,7 +131,8 @@ impl State {
     fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
-        let part_id = display::input_u32(w, "Enter the part ID of the new item")?;
+        let part_id =
+            display::input_u32(w, "Enter the part ID of the new item")?;
 
         if self.db.contains(part_id) {
             let item = self.db.get_item(part_id)?;
@@ -131,13 +151,15 @@ impl State {
         let color_group = display::select_from_list(
             w,
             "Select a color group by typing its first letter\n(you can add more groups later)",
-            &COMP_COLORS,
+            &ColorGroup::iter().collect(),
         )?;
 
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
-        let part_loc =
-            display::input_string(w, &format!("Enter location of group {}:", color_group))?;
+        let part_loc = display::input_string(
+            w,
+            &format!("Enter location of group {}:", color_group),
+        )?;
         let part_loc = part_loc.to_uppercase();
 
         let new_item = Item::new(part_id, color_group, part_loc.to_owned());
@@ -150,7 +172,10 @@ impl State {
 
     fn search_by_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
-        let searched_id = display::input_u32(w, "Enter the part ID of the new to search for.")?;
+        let searched_id = display::input_u32(
+            w,
+            "Enter the part ID of the new to search for.",
+        )?;
 
         if let Ok(item) = self.db.get_item(searched_id) {
             return Ok(Mode::DisplayItem {
@@ -166,14 +191,14 @@ impl State {
 
     fn edit_item(&self) -> Result<Mode> {
         let Mode::DisplayItem { item, msg: _ } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, Edit);
         };
         Ok(Mode::EditItem { item: item.clone() })
     }
 
     fn save_edit(&mut self) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, SaveEdit);
         };
         self.db.update_item(item.clone())?;
         Ok(Mode::DisplayItem {
@@ -182,41 +207,45 @@ impl State {
         })
     }
 
-    fn cancel_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn quit_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, QuitEdit);
         };
 
         let old_item = self.db.get_item(item.get_id())?;
         if old_item == item {
-            Ok(Mode::DisplayItem {
+            return Ok(Mode::DisplayItem {
                 item: item.clone(),
                 msg: None,
-            })
-        } else {
-            display::clear(w)?;
-            let changes = format!(
+            });
+        }
+
+        display::clear(w)?;
+        let changes = format!(
                 "Are you sure you want to quit editing and cancel these changes?\n{}",
                 old_item.diff(item)
             );
-            if display::confirmation_prompt(w, &changes)? {
-                Ok(Mode::DisplayItem {
-                    item: old_item.clone(),
-                    msg: None,
-                })
-            } else {
-                Ok(Mode::EditItem { item: item.clone() })
-            }
+
+        if display::confirmation_prompt(w, &changes)? {
+            Ok(Mode::DisplayItem {
+                item: old_item.clone(),
+                msg: None,
+            })
+        } else {
+            Ok(Mode::EditItem { item: item.clone() })
         }
     }
 
     fn edit_name<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, EditName);
         };
 
         display::clear(w)?;
-        display::emit_line(w, format!("Editing name of part: {}", item.get_id()))?;
+        display::emit_line(
+            w,
+            format!("Editing name of part: {}", item.get_id()),
+        )?;
         let new_name = display::input_string(w, "Enter new name:")?;
 
         let mut new_item = item.clone();
@@ -226,11 +255,14 @@ impl State {
 
     fn edit_amount<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, EditAmount);
         };
 
         display::clear(w)?;
-        display::emit_line(w, format!("Editing amount of part: {}", item.get_id()))?;
+        display::emit_line(
+            w,
+            format!("Editing amount of part: {}", item.get_id()),
+        )?;
         let new_amount = display::input_u32(w, "Enter new amount:")?;
 
         let mut new_item = item.clone();
@@ -240,7 +272,7 @@ impl State {
 
     fn add_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, AddColorGroup)
         };
 
         display::clear(w)?;
@@ -252,15 +284,8 @@ impl State {
             ),
         )?;
 
-        let mut options = COMP_COLORS.clone().to_vec();
-        options.retain(|(_, g)| {
-            for (other, _) in item.get_location() {
-                if other == g {
-                    return false;
-                }
-            }
-            true
-        });
+        let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
+        let options: BTreeSet<ColorGroup> = &options - &item.get_color_set();
 
         let color_group = display::select_from_list(
             w,
@@ -277,8 +302,10 @@ impl State {
             ),
         )?;
 
-        let part_loc =
-            display::input_string(w, &format!("Enter location of group {}:", color_group))?;
+        let part_loc = display::input_string(
+            w,
+            &format!("Enter location of group {}:", color_group),
+        )?;
         let part_loc = part_loc.to_uppercase();
 
         let mut new_item = item.clone();
@@ -288,7 +315,7 @@ impl State {
 
     fn remove_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, RemoveColorGroup);
         };
 
         display::clear(w)?;
@@ -300,17 +327,14 @@ impl State {
             ),
         )?;
 
-        let mut options = COMP_COLORS.clone().to_vec();
-        options.retain(|(_, g)| {
-            for (other, _) in item.get_location() {
-                if other == g {
-                    return true;
-                }
-            }
-            false
-        });
+        let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
+        let options: BTreeSet<ColorGroup> = &options & &item.get_color_set();
 
-        let color_group = display::select_from_list(w, "Select  color group to remove:", &options)?;
+        let color_group = display::select_from_list(
+            w,
+            "Select  color group to remove:",
+            &options,
+        )?;
         let mut new_item = item.clone();
         new_item.remove_color_group(color_group);
         Ok(Mode::EditItem { item: new_item })
@@ -318,11 +342,14 @@ impl State {
 
     fn add_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, AddAltId);
         };
 
-        let new_id =
-            display::input_u32(w, "Enter the new alternative part ID to add to this item")?;
+        display::clear(w)?;
+        let new_id = display::input_u32(
+            w,
+            "Enter the new alternative part ID to add to this item",
+        )?;
 
         let mut new_item = item.clone();
         new_item.add_alt_id(new_id);
@@ -331,15 +358,16 @@ impl State {
 
     fn remove_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, RemoveAltId);
         };
 
+        display::clear(w)?;
         todo!();
     }
 
     fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem { item } = &self.mode else {
-            return Err(Error::CmdModeMismatch { cmd: Cmd::Edit.to_string(), mode: self.mode.to_string() });
+            bail!(self, DeleteItem);
         };
 
         display::clear(w)?;
