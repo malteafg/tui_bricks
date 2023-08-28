@@ -291,7 +291,7 @@ impl Database {
 
             Ok(())
         } else {
-            Err(Error::PartNotFound {
+            Err(Error::PartNotFoundId {
                 part_id: item.get_id(),
             })
         }
@@ -313,13 +313,37 @@ impl Database {
         return false;
     }
 
-    pub fn get_item(&self, part_id: u32) -> Result<&Item> {
+    pub fn get_item_by_id(&self, part_id: u32) -> Result<&Item> {
         for item in self.raw_data.iter() {
             if item.get_id() == part_id {
                 return Ok(&item);
             }
         }
-        Err(Error::PartNotFound { part_id })
+        Err(Error::PartNotFoundId { part_id })
+    }
+
+    pub fn get_item_by_name(&self, name: &str) -> Result<&Item> {
+        for item in self.raw_data.iter() {
+            if let Some(n) = item.get_name() {
+                if n == name {
+                    return Ok(&item);
+                }
+            }
+        }
+        Err(Error::PartNotFoundName {
+            name: name.to_string(),
+        })
+    }
+
+    pub fn get_all_names(&self) -> String {
+        let mut res = String::new();
+        for d in self.raw_data.iter() {
+            if let Some(n) = d.get_name() {
+                res.push_str(n);
+                res.push('\n');
+            }
+        }
+        res
     }
 }
 

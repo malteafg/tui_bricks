@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 use crossterm::{cursor, execute, queue};
 use strum::IntoEnumIterator;
@@ -123,7 +124,7 @@ impl State {
             RemoveAltId => self.remove_alt_id(w),
 
             SearchPartID => self.search_by_id(w),
-            SearchName => todo!(),
+            SearchName => self.search_by_name(),
             SearchLocation => todo!(),
         }
     }
@@ -135,7 +136,7 @@ impl State {
             display::input_u32(w, "Enter the part ID of the new item")?;
 
         if self.db.contains(part_id) {
-            let item = self.db.get_item(part_id)?;
+            let item = self.db.get_item_by_id(part_id)?;
             let msg = Some(format!(
                 "Item with ID {} already exists in database",
                 part_id
@@ -177,7 +178,7 @@ impl State {
             "Enter the part ID of the new to search for.",
         )?;
 
-        if let Ok(item) = self.db.get_item(searched_id) {
+        if let Ok(item) = self.db.get_item_by_id(searched_id) {
             return Ok(Mode::DisplayItem {
                 item: item.clone(),
                 msg: None,
@@ -186,6 +187,38 @@ impl State {
 
         Ok(Mode::Default {
             info: format!("Part {} not found in database", searched_id),
+        })
+    }
+
+    fn search_by_name(&self) -> Result<Mode> {
+        // Start the fzf process with stdin and stdout pipes
+        let mut fzf = Command::new("fzf")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()?;
+
+        // Get a handle to the stdin and stdout of the fzf process
+        let fzf_stdin = fzf.stdin.as_mut().ok_or(Error::ExternalCmdError)?;
+        let fzf_stdout = fzf.stdout.as_mut().ok_or(Error::ExternalCmdError)?;
+
+        // Write the input to the stdin of the fzf process
+        let opts = self.db.get_all_names();
+        fzf_stdin.write_all(opts.as_bytes())?;
+
+        // Read and print the output of fzf
+        let mut searched_name = String::new();
+        fzf_stdout.read_to_string(&mut searched_name)?;
+        let searched_name = searched_name.trim();
+
+        if let Ok(item) = self.db.get_item_by_name(&searched_name) {
+            return Ok(Mode::DisplayItem {
+                item: item.clone(),
+                msg: None,
+            });
+        }
+
+        Ok(Mode::Default {
+            info: format!("Part {} not found in database", searched_name),
         })
     }
 
@@ -212,7 +245,7 @@ impl State {
             bail!(self, QuitEdit);
         };
 
-        let old_item = self.db.get_item(item.get_id())?;
+        let old_item = self.db.get_item_by_id(item.get_id())?;
         if old_item == item {
             return Ok(Mode::DisplayItem {
                 item: item.clone(),

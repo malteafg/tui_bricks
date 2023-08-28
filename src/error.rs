@@ -6,14 +6,18 @@ pub enum Error {
     IOError(#[from] std::io::Error),
     #[error("yaml serialization error")]
     SerdeError(#[from] serde_yaml::Error),
+    #[error("external cmd error")]
+    ExternalCmdError,
 
     #[error("could not convert an os string into a string")]
     OsStringFailed,
     #[error("parsing error")]
     ParsingError(#[from] std::num::ParseIntError),
 
-    #[error("part not found: {part_id}")]
-    PartNotFound { part_id: u32 },
+    #[error("part not found by id: {part_id}")]
+    PartNotFoundId { part_id: u32 },
+    #[error("part not found by name: {name}")]
+    PartNotFoundName { name: String },
     #[error("part already exists in database: {part_id}")]
     PartAlreadyExists { part_id: u32 },
 
