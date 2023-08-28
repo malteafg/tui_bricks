@@ -79,7 +79,45 @@ pub fn confirmation_prompt<W: Write>(w: &mut W, text: &str) -> Result<bool> {
     }
 }
 
-pub fn select_from_list<W: Write, D: Display + Clone + CmdChar>(
+pub fn select_from_list<W: Write, D: Display + Clone>(
+    w: &mut W,
+    text: &str,
+    options: &BTreeSet<D>,
+) -> Result<D> {
+    let mut cmds: Vec<char> = Vec::new();
+    ('a'..='z').for_each(|l| cmds.push(l));
+
+    if options.len() > cmds.len() {
+        panic!("Too many options to select from list");
+    }
+
+    let list: Vec<(char, D)> = options
+        .iter()
+        .enumerate()
+        .map(|(i, o)| (cmds[i], o.clone()))
+        .collect();
+
+    emit_iter(w, text.split("\n"))?;
+    emit_line(w, "Select from the list by typing the letter")?;
+    queue!(w, MoveToNextLine(1))?;
+
+    for (c, o) in list.iter() {
+        emit_line(w, &format!("{}: {}", c, o))?;
+    }
+
+    w.flush()?;
+
+    loop {
+        let selected = input::wait_for_cmdchar()?;
+        for (c, o) in list.iter() {
+            if *c == selected {
+                return Ok(o.clone());
+            }
+        }
+    }
+}
+
+pub fn select_from_list_char<W: Write, D: Display + Clone + CmdChar>(
     w: &mut W,
     text: &str,
     options: &BTreeSet<D>,

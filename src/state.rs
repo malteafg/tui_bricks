@@ -148,7 +148,7 @@ impl State {
 
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
-        let color_group = display::select_from_list(
+        let color_group = display::select_from_list_char(
             w,
             "Select a color group by typing its first letter\n(you can add more groups later)",
             &ColorGroup::iter().collect(),
@@ -287,7 +287,7 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options - &item.get_color_set();
 
-        let color_group = display::select_from_list(
+        let color_group = display::select_from_list_char(
             w,
             "Select a color group for which to add a location",
             &options,
@@ -330,7 +330,7 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options & &item.get_color_set();
 
-        let color_group = display::select_from_list(
+        let color_group = display::select_from_list_char(
             w,
             "Select  color group to remove:",
             &options,
@@ -362,7 +362,17 @@ impl State {
         };
 
         display::clear(w)?;
-        todo!();
+
+        let options = item.get_alternative_ids().iter().map(|i| *i).collect();
+        let alt_id = display::select_from_list(
+            w,
+            "Which alternative ID do you want to remove?",
+            &options,
+        )?;
+
+        let mut new_item = item.clone();
+        new_item.remove_alt_id(alt_id);
+        Ok(Mode::EditItem { item: new_item })
     }
 
     fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
