@@ -135,7 +135,7 @@ impl State {
         let part_id =
             display::input_u32(w, "Enter the part ID of the new item")?;
 
-        if self.db.contains(part_id) {
+        if self.db.contains_id(part_id) {
             let item = self.db.get_item_by_id(part_id)?;
             let msg = Some(format!(
                 "Item with ID {} already exists in database",
@@ -226,11 +226,14 @@ impl State {
         let Mode::DisplayItem { item, msg: _ } = &self.mode else {
             bail!(self, Edit);
         };
-        Ok(Mode::EditItem { item: item.clone() })
+        Ok(Mode::EditItem {
+            item: item.clone(),
+            msg: None,
+        })
     }
 
     fn save_edit(&mut self) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: _ } = &self.mode else {
             bail!(self, SaveEdit);
         };
         self.db.update_item(item.clone())?;
@@ -241,7 +244,7 @@ impl State {
     }
 
     fn quit_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: _ } = &self.mode else {
             bail!(self, QuitEdit);
         };
 
@@ -265,12 +268,15 @@ impl State {
                 msg: None,
             })
         } else {
-            Ok(Mode::EditItem { item: item.clone() })
+            Ok(Mode::EditItem {
+                item: item.clone(),
+                msg: None,
+            })
         }
     }
 
     fn edit_name<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: None } = &self.mode else {
             bail!(self, EditName);
         };
 
@@ -281,13 +287,26 @@ impl State {
         )?;
         let new_name = display::input_string(w, "Enter new name:")?;
 
+        if let Some(existing_id) = self.db.contains_name(&new_name) {
+            return Ok(Mode::EditItem {
+                item: item.clone(),
+                msg: Some(format!(
+                    "The item with part id {} already has the name {}",
+                    existing_id, new_name,
+                )),
+            });
+        }
+
         let mut new_item = item.clone();
         new_item.set_name(&new_name);
-        Ok(Mode::EditItem { item: new_item })
+        Ok(Mode::EditItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn edit_amount<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: None } = &self.mode else {
             bail!(self, EditAmount);
         };
 
@@ -300,11 +319,14 @@ impl State {
 
         let mut new_item = item.clone();
         new_item.set_amount(Some(new_amount));
-        Ok(Mode::EditItem { item: new_item })
+        Ok(Mode::EditItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn add_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: _ } = &self.mode else {
             bail!(self, AddColorGroup)
         };
 
@@ -343,11 +365,14 @@ impl State {
 
         let mut new_item = item.clone();
         new_item.add_color_group(color_group, part_loc);
-        Ok(Mode::EditItem { item: new_item })
+        Ok(Mode::EditItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn remove_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: None } = &self.mode else {
             bail!(self, RemoveColorGroup);
         };
 
@@ -370,11 +395,14 @@ impl State {
         )?;
         let mut new_item = item.clone();
         new_item.remove_color_group(color_group);
-        Ok(Mode::EditItem { item: new_item })
+        Ok(Mode::EditItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn add_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: _ } = &self.mode else {
             bail!(self, AddAltId);
         };
 
@@ -386,11 +414,14 @@ impl State {
 
         let mut new_item = item.clone();
         new_item.add_alt_id(new_id);
-        Ok(Mode::EditItem { item: new_item })
+        Ok(Mode::EditItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn remove_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: _ } = &self.mode else {
             bail!(self, RemoveAltId);
         };
 
@@ -405,11 +436,14 @@ impl State {
 
         let mut new_item = item.clone();
         new_item.remove_alt_id(alt_id);
-        Ok(Mode::EditItem { item: new_item })
+        Ok(Mode::EditItem {
+            item: new_item,
+            msg: None,
+        })
     }
 
     fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item } = &self.mode else {
+        let Mode::EditItem { item, msg: _ } = &self.mode else {
             bail!(self, DeleteItem);
         };
 
@@ -427,7 +461,10 @@ impl State {
                 info: format!("Item with ID: {} was deleted.", item.get_id()),
             })
         } else {
-            Ok(Mode::EditItem { item: item.clone() })
+            Ok(Mode::EditItem {
+                item: item.clone(),
+                msg: None,
+            })
         }
     }
 }

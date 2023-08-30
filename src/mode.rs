@@ -10,7 +10,7 @@ use crate::error::Result;
 pub enum Mode {
     Default { info: String },
     DisplayItem { item: Item, msg: Option<String> },
-    EditItem { item: Item },
+    EditItem { item: Item, msg: Option<String> },
 }
 
 impl Mode {
@@ -58,11 +58,18 @@ impl Mode {
                 }
                 display::emit_iter(w, item.to_string().split("\n"))?;
             }
-            EditItem { item } => {
-                display::header(
-                    w,
-                    &format!("Now editing item with part ID {}", item.get_id()),
-                )?;
+            EditItem { item, msg } => {
+                if let Some(msg) = msg {
+                    display::header(w, msg)?;
+                } else {
+                    display::header(
+                        w,
+                        &format!(
+                            "Now editing item with part ID {}",
+                            item.get_id()
+                        ),
+                    )?;
+                }
                 display::emit_iter(w, item.to_string().split("\n"))?;
             }
         }
