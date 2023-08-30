@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 
 use crossterm::{cursor, execute, queue};
 use strum::IntoEnumIterator;
@@ -125,7 +124,7 @@ impl State {
 
             SearchPartID => self.search_by_id(w),
             SearchName => self.search_by_name(),
-            SearchLocation => todo!(),
+            SearchLocation => self.search_by_location(),
         }
     }
 
@@ -191,24 +190,9 @@ impl State {
     }
 
     fn search_by_name(&self) -> Result<Mode> {
-        // Start the fzf process with stdin and stdout pipes
-        let mut fzf = Command::new("fzf")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()?;
-
-        // Get a handle to the stdin and stdout of the fzf process
-        let fzf_stdin = fzf.stdin.as_mut().ok_or(Error::ExternalCmdError)?;
-        let fzf_stdout = fzf.stdout.as_mut().ok_or(Error::ExternalCmdError)?;
-
-        // Write the input to the stdin of the fzf process
         let opts = self.db.get_all_names();
-        fzf_stdin.write_all(opts.as_bytes())?;
 
-        // Read and print the output of fzf
-        let mut searched_name = String::new();
-        fzf_stdout.read_to_string(&mut searched_name)?;
-        let searched_name = searched_name.trim();
+        let searched_name = display::fzf_search(&opts)?;
 
         if let Ok(item) = self.db.get_item_by_name(&searched_name) {
             return Ok(Mode::DisplayItem {
@@ -220,6 +204,30 @@ impl State {
         Ok(Mode::Default {
             info: format!("Part {} not found in database", searched_name),
         })
+    }
+
+    fn search_by_location(&self) -> Result<Mode> {
+        let opts = self.db.get_all_locations();
+        let searched_loc = display::fzf_search(&opts)?;
+        let locations = self.db.get_items_at_location(&searched_loc);
+
+        if locations.is_empty() {
+            return Ok(Mode::Default {
+                info: format!("{} does not contain anything", searched_loc),
+            });
+        }
+
+        let mut info =
+            format!("{} contains the following items:\n\n", searched_loc);
+        for &(id, color_group) in locations.iter() {
+            info.push_str(&format!(
+                "Part ID: {}, color group: {}",
+                id, color_group
+            ));
+            info.push('\n');
+        }
+
+        Ok(Mode::Default { info })
     }
 
     fn edit_item(&self) -> Result<Mode> {

@@ -9,8 +9,9 @@ use crossterm::{
     terminal::{self, ClearType},
 };
 
+use crate::command::CmdChar;
+use crate::error::{Error, Result};
 use crate::input;
-use crate::{command::CmdChar, error::Result};
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
     queue!(w, Print(line), cursor::MoveToNextLine(1))?;
@@ -150,4 +151,26 @@ pub fn clear<W: Write>(w: &mut W) -> Result<()> {
     )?;
 
     Ok(())
+}
+
+pub fn fzf_search(opts: &str) -> Result<String> {
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+
+    // Start the fzf process with stdin and stdout pipes
+    let mut fzf = Command::new("fzf")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    // Get a handle to the stdin and stdout of the fzf process
+    let fzf_stdin = fzf.stdin.as_mut().ok_or(Error::ExternalCmdError)?;
+    let fzf_stdout = fzf.stdout.as_mut().ok_or(Error::ExternalCmdError)?;
+
+    // Write the input to the stdin of the fzf process
+    fzf_stdin.write_all(opts.as_bytes())?;
+
+    let mut res = String::new();
+    fzf_stdout.read_to_string(&mut res)?;
+    Ok(res.trim().to_string())
 }

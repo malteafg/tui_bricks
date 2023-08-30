@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crossterm::{cursor, queue, style::Print};
-
 use crate::command::{Cmd, CmdList, MultiCmd};
 use crate::data::Item;
 use crate::display;
@@ -45,7 +43,7 @@ impl Mode {
         match self {
             Default { info } => {
                 display::default_header(w)?;
-                queue!(w, Print(info), cursor::MoveToNextLine(2))?;
+                display::emit_iter(w, info.split("\n"))?;
             }
             DisplayItem { item, msg } => {
                 if let Some(msg) = msg {

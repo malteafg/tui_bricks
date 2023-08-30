@@ -101,7 +101,7 @@ impl Item {
         self.amount
     }
 
-    pub fn get_location(&self) -> &[(ColorGroup, String)] {
+    pub fn get_locations(&self) -> &[(ColorGroup, String)] {
         &self.location
     }
 
@@ -171,11 +171,11 @@ impl Item {
                 other.get_amount()
             ));
         }
-        if self.get_location() != other.get_location() {
+        if self.get_locations() != other.get_locations() {
             diff.push_str(&format!(
                 "Locations: {:#?} -> {:#?}\n",
-                self.get_location(),
-                other.get_location()
+                self.get_locations(),
+                other.get_locations()
             ));
         }
         diff
@@ -351,10 +351,38 @@ impl Database {
 
     pub fn get_all_names(&self) -> String {
         let mut res = String::new();
-        for d in self.raw_data.iter() {
-            if let Some(n) = d.get_name() {
+        for item in self.raw_data.iter() {
+            if let Some(n) = item.get_name() {
                 res.push_str(n);
                 res.push('\n');
+            }
+        }
+        res
+    }
+
+    pub fn get_all_locations(&self) -> String {
+        let mut locs = BTreeSet::new();
+        for item in self.raw_data.iter() {
+            for (_, loc) in item.get_locations() {
+                locs.insert(loc);
+            }
+        }
+
+        let mut res = String::new();
+        for loc in locs.into_iter() {
+            res.push_str(loc);
+            res.push('\n');
+        }
+        res
+    }
+
+    pub fn get_items_at_location(&self, loc: &str) -> Vec<(u32, ColorGroup)> {
+        let mut res = Vec::new();
+        for item in self.raw_data.iter() {
+            for (color_group, o_loc) in item.get_locations() {
+                if o_loc == loc {
+                    res.push((item.get_id(), *color_group));
+                }
             }
         }
         res
