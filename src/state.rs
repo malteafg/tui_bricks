@@ -135,11 +135,11 @@ impl State {
         let part_id =
             display::input_u32(w, "Enter the part ID of the new item")?;
 
-        if self.db.contains_id(part_id) {
+        if let Some(main_id) = self.db.contains_id(part_id) {
             let item = self.db.get_item_by_id(part_id)?;
             let msg = Some(format!(
-                "Item with ID {} already exists in database",
-                part_id
+                "Item with part ID {} already exists in database under item with part ID {}",
+                part_id, main_id
             ));
             return Ok(Mode::DisplayItem {
                 item: item.clone(),
@@ -291,7 +291,7 @@ impl State {
             return Ok(Mode::EditItem {
                 item: item.clone(),
                 msg: Some(format!(
-                    "The item with part id {} already has the name {}",
+                    "The item with part ID {} already has the name {}",
                     existing_id, new_name,
                 )),
             });
@@ -411,6 +411,17 @@ impl State {
             w,
             "Enter the new alternative part ID to add to this item",
         )?;
+
+        if let Some(main_id) = self.db.contains_id(new_id) {
+            let msg = Some(format!(
+                "Item with part ID {} already exists in database under item with part ID {}",
+                new_id, main_id
+            ));
+            return Ok(Mode::EditItem {
+                item: item.clone(),
+                msg,
+            });
+        }
 
         let mut new_item = item.clone();
         new_item.add_alt_id(new_id);

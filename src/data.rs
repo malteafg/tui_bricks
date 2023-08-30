@@ -267,7 +267,7 @@ impl Database {
     }
 
     pub fn add_item(&mut self, item: Item) -> Result<()> {
-        if self.contains_id(item.get_id()) {
+        if self.contains_id(item.get_id()).is_some() {
             return Err(Error::PartAlreadyExists {
                 part_id: item.get_id(),
             });
@@ -304,13 +304,15 @@ impl Database {
         Ok(())
     }
 
-    pub fn contains_id(&self, part_id: u32) -> bool {
+    pub fn contains_id(&self, part_id: u32) -> Option<u32> {
         for item in self.raw_data.iter() {
-            if item.get_id() == part_id {
-                return true;
+            if item.get_id() == part_id
+                || item.get_alternative_ids().contains(&part_id)
+            {
+                return Some(item.get_id());
             }
         }
-        return false;
+        return None;
     }
 
     pub fn contains_name(&self, name: &str) -> Option<u32> {

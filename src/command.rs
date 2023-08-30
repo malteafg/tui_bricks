@@ -69,7 +69,7 @@ impl Cmd {
     pub fn get_info(&self) -> &str {
         use Cmd::*;
         match &self {
-            AddItem => "(a)dd a new item to the menu",
+            AddItem => "(a)dd a new item to the database",
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
             SaveEdit => "(s)ave the current changes and quit editing",
