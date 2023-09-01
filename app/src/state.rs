@@ -124,48 +124,6 @@ impl State {
         }
     }
 
-    fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
-        display::clear(w)?;
-        display::emit_line(w, "Adding a new item to the database")?;
-        let part_id =
-            display::input_u32(w, "Enter the part ID of the new item")?;
-
-        if let Some(main_id) = self.db.contains_id(part_id) {
-            let item = self.db.get_item_by_id(part_id)?;
-            let msg = Some(format!(
-                "Item with part ID {} already exists in database under item with part ID {}",
-                part_id, main_id
-            ));
-            return Ok(Mode::DisplayItem {
-                item: item.clone(),
-                msg,
-            });
-        }
-
-        display::clear(w)?;
-        display::emit_line(w, "Adding a new item to the database")?;
-        let color_group = display::select_from_list_char(
-            w,
-            "Select a color group by typing its first letter\n(you can add more groups later)",
-            &ColorGroup::iter().collect(),
-        )?;
-
-        display::clear(w)?;
-        display::emit_line(w, "Adding a new item to the database")?;
-        let part_loc = display::input_string(
-            w,
-            &format!("Enter location of group {}:", color_group),
-        )?;
-        let part_loc = part_loc.to_uppercase();
-
-        let new_item = Item::new(part_id, color_group, part_loc.to_owned());
-        self.db.add_item(new_item.clone())?;
-        Ok(Mode::DisplayItem {
-            item: new_item,
-            msg: None,
-        })
-    }
-
     fn search_by_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         let searched_id = display::input_u32(

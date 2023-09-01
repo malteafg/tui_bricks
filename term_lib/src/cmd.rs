@@ -5,8 +5,9 @@ macro_rules! create_cmd_handler {
         use term_lib::input;
 
         pub trait $mode_trait {
-            fn exec(
+            fn exec<W: std::io::Write>(
                 &mut self,
+                w: &mut W,
                 state: &mut $state,
                 cmd: $cmd,
             ) -> term_lib::Result<Option<$mode>>;
@@ -61,7 +62,7 @@ macro_rules! create_cmd_handler {
                 }
 
                 if let Some(new_mode) =
-                    self.mode.exec(&mut self.state, exec_cmd)?
+                    self.mode.exec(w, &mut self.state, exec_cmd)?
                 {
                     self.mode = new_mode;
                 }
