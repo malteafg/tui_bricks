@@ -1,72 +1,82 @@
-use std::io::Stdout;
+#[macro_export]
+macro_rules! create_cmd_handler {
+    ($name:ident, $cmd:ident, $mode:ident, $state:ident, $mode_trait:ident) => {
+        use term_lib::display;
+        use term_lib::input;
 
-use crossterm::{cursor, queue};
+        pub trait $mode_trait {
+            fn exec(
+                &mut self,
+                state: &mut $state,
+                cmd: $cmd,
+            ) -> term_lib::Result<Option<$mode>>;
 
-use crate::display;
-use crate::input;
-use crate::Result;
+            fn emit_mode<W: std::io::Write>(
+                &self,
+                w: &mut W,
+            ) -> term_lib::Result<()>;
+
+            fn get_possible_cmds(&self) -> term_lib::cmd::CmdList<$cmd>;
+        }
+
+        pub struct $name {
+            mode: $mode,
+            state: $state,
+        }
+
+        impl $name {
+            pub fn new(mode: $mode, state: $state) -> Self {
+                Self { mode, state }
+            }
+
+            pub fn exec_cmd<W: std::io::Write>(
+                &mut self,
+                w: &mut W,
+            ) -> Result<()> {
+                use crossterm::{cursor, queue};
+
+                display::clear(w)?;
+                self.mode.emit_mode(w)?;
+
+                let possible_cmds = self.mode.get_possible_cmds();
+                display::emit_dash(w)?;
+                display::emit_line(w, "List of possible commands:")?;
+                queue!(w, cursor::MoveToNextLine(1))?;
+                display::emit_iter(w, possible_cmds.iter())?;
+
+                w.flush()?;
+
+                let exec_cmd;
+                loop {
+                    match input::wait_for_cmdchar() {
+                        Ok(cmd_char) => {
+                            if let Some(cmd) = possible_cmds.get(cmd_char) {
+                                exec_cmd = cmd;
+                                break;
+                            }
+                        }
+                        Err(term_lib::Error::Escape) => {}
+                        Err(e) => return Err(e.into()),
+                    }
+                }
+
+                if let Some(new_mode) =
+                    self.mode.exec(&mut self.state, exec_cmd)?
+                {
+                    self.mode = new_mode;
+                }
+                Ok(())
+            }
+        }
+    };
+}
 
 pub trait CmdChar {
     fn get_char(&self) -> char;
 }
 
-pub trait Cmd: Ord + PartialOrd + std::fmt::Display + Copy {
-    fn get_char(&self) -> char;
+pub trait Cmd: Ord + PartialOrd + std::fmt::Display + Copy + CmdChar {
     fn get_info(&self) -> &'static str;
-}
-
-pub trait DisplayCmd {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
-}
-
-pub trait Mode<C: Cmd, T, W: std::io::Write = Stdout> {
-    fn exec(&mut self, state: &mut T, cmd: C)
-        -> Option<Box<dyn Mode<C, T, W>>>;
-    fn emit_mode(&self, w: &mut W) -> crate::Result<()>;
-    fn get_possible_cmds(&self) -> CmdList<C>;
-}
-
-pub struct CmdHandler<C: Cmd, T, W: std::io::Write = Stdout> {
-    mode: Box<dyn Mode<C, T, W>>,
-    state: T,
-}
-
-impl<C: Cmd, T, W: std::io::Write> CmdHandler<C, T, W> {
-    pub fn new(mode: Box<dyn Mode<C, T, W>>, state: T) -> Self {
-        Self { mode, state }
-    }
-
-    pub fn exec_cmd(&mut self, w: &mut W) -> Result<()> {
-        let possible_cmds = self.mode.get_possible_cmds();
-        display::emit_dash(w)?;
-        display::emit_line(w, "List of possible commands:")?;
-        queue!(w, cursor::MoveToNextLine(1))?;
-        display::emit_iter(w, possible_cmds.iter())?;
-
-        w.flush()?;
-
-        let exec_cmd;
-        loop {
-            match input::wait_for_cmdchar() {
-                Ok(cmd_char) => {
-                    if let Some(cmd) = possible_cmds.get(cmd_char) {
-                        exec_cmd = cmd;
-                        break;
-                    }
-                }
-                Err(crate::Error::Escape) => {}
-                Err(e) => return Err(e.into()),
-            }
-        }
-
-        if let Some(new_mode) = self.mode.exec(&mut self.state, exec_cmd) {
-            self.mode = new_mode;
-        }
-
-        display::clear(w)?;
-        self.mode.emit_mode(w)?;
-        Ok(())
-    }
 }
 
 pub struct CmdList<C: Cmd> {
