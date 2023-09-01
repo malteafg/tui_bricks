@@ -353,7 +353,7 @@ impl Database {
         let mut res = String::new();
         for item in self.raw_data.iter() {
             if let Some(n) = item.get_name() {
-                res.push_str(n);
+                res += n;
                 res.push('\n');
             }
         }
@@ -370,8 +370,8 @@ impl Database {
 
         let mut res = String::new();
         for loc in locs.into_iter() {
-            res.push_str(loc);
-            res.push('\n');
+            res += loc;
+            res += "\n";
         }
         res
     }

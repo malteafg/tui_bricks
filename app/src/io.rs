@@ -52,7 +52,7 @@ pub fn get_config_dir() -> Result<std::path::PathBuf> {
 pub fn read_contents_from_path<P, T>(path: P) -> Result<T>
 where
     P: AsRef<Path>,
-    T: Serialize + for<'de> Deserialize<'de>,
+    T: for<'de> Deserialize<'de>,
 {
     let file = fs::File::open(path)?;
     let contents = serde_yaml::from_reader(file)?;
@@ -62,7 +62,7 @@ where
 pub fn write_contents_to_path<P, T>(path: P, contents: &T) -> Result<()>
 where
     P: AsRef<Path>,
-    T: Serialize + for<'de> Deserialize<'de>,
+    T: Serialize,
 {
     let file = fs::File::create(path)?;
     serde_yaml::to_writer(file, contents)?;
