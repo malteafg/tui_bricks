@@ -8,7 +8,7 @@ use crate::error::Result;
 /// linux: /home/alice/.local/share/tui_bricks/
 /// macos: /Users/Alice/Library/Application Support/com.simaflux.tui_bricks/database.yml
 /// windows: C:\Users\Alice\AppData\Roaming\simaflux\tui_bricks\data\database.yml
-#[cfg(not(debug_assertions))]
+// #[cfg(not(debug_assertions))]
 pub fn get_storage_dir() -> Result<std::path::PathBuf> {
     let path = directories::ProjectDirs::from("com", "simaflux", "tui_bricks")
         .map(|dir| dir.data_dir().to_path_buf())
@@ -30,7 +30,7 @@ pub fn get_storage_dir() -> Result<std::path::PathBuf> {
 /// linux: /home/alice/.config/tui_bricks/
 /// macos: /Users/Alice/Library/Caches/com.simaflux.tui_bricks
 /// windows: C:\Users\Alice\AppData\Local\simaflux\tui_bricks\cache
-#[cfg(not(debug_assertions))]
+// #[cfg(not(debug_assertions))]
 pub fn get_config_dir() -> Result<std::path::PathBuf> {
     let path = directories::ProjectDirs::from("com", "simaflux", "tui_bricks")
         .map(|dir| dir.config_dir().to_path_buf())

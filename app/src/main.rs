@@ -7,19 +7,20 @@ use tui_bricks::state::State;
 
 #[cfg(not(debug_assertions))]
 fn get_user_db_path() -> Result<PathBuf> {
+    use figment::{
+        providers::{Format, Serialized, Yaml},
+        Figment,
+    };
+    use tui_bricks::config::Config;
+
     let mut config_path = tui_bricks::io::get_config_dir()?;
     config_path.push("config.yml");
-    let config = match tui_bricks::io::read_contents_from_path(&config_path) {
-        Ok(config) => config,
-        Err(tui_bricks::error::Error::IOError(io_error))
-            if io_error.kind() == std::io::ErrorKind::NotFound =>
-        {
-            let config = tui_bricks::config::Config::new()?;
-            tui_bricks::io::write_contents_to_path(&config_path, &config)?;
-            config
-        }
-        Err(e) => return Err(e),
-    };
+
+    let config: Config = Figment::from(Serialized::defaults(Config::default()))
+        .merge(Yaml::file(config_path))
+        .extract()
+        .unwrap();
+
     Ok(config.get_db_path())
 }
 

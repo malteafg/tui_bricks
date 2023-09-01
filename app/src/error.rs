@@ -9,10 +9,10 @@ pub enum Error {
     #[error("external cmd error")]
     ExternalCmdError,
 
-    #[error("could not convert an os string into a string")]
-    OsStringFailed,
     #[error("parsing error")]
     ParsingError(#[from] std::num::ParseIntError),
+    #[error("term_lib threw an error")]
+    TermError(#[from] term_lib::Error),
 
     #[error("part not found by id: {part_id}")]
     PartNotFoundId { part_id: u32 },
@@ -29,5 +29,11 @@ pub enum Error {
     #[error("signal to quit program was sent")]
     Quit,
 }
+
+// impl From<std::io::Error> for Error {
+//     fn from(err: std::io::Error) -> Self {
+//         Error::TermError(term_lib::Error::IOError(err))
+//     }
+// }
 
 pub type Result<T> = std::result::Result<T, Error>;
