@@ -1,8 +1,9 @@
 use std::fmt;
 
+use term_lib::display;
+
 use crate::command::{Cmd, CmdList, MultiCmd};
 use crate::data::Item;
-use crate::display;
 use crate::error::Result;
 
 pub enum Mode {
@@ -42,7 +43,7 @@ impl Mode {
         use Mode::*;
         match self {
             Default { info } => {
-                display::default_header(w)?;
+                display::header(w, "Welcome to TUI bricks")?;
                 display::emit_iter(w, info.split("\n"))?;
             }
             DisplayItem { item, msg } => {

@@ -6,7 +6,8 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
-use crate::command::CmdChar;
+use term_lib::cmd::CmdChar;
+
 use crate::error::{Error, Result};
 use crate::io;
 
@@ -248,9 +249,9 @@ pub struct Database {
 
 impl Database {
     pub fn new(db_path: PathBuf) -> Result<Self> {
-        match io::read_contents_from_path(&db_path) {
+        match io::read_contents_from_yaml(&db_path) {
             Ok(raw_data) => Ok(Self { raw_data, db_path }),
-            Err(Error::IOError(io_error))
+            Err(term_lib::Error::IOError(io_error))
                 if io_error.kind() == ErrorKind::NotFound =>
             {
                 let raw_data = RawDatabase::default();
@@ -258,12 +259,13 @@ impl Database {
                 db.write()?;
                 Ok(db)
             }
-            Err(e) => return Err(e),
+            Err(e) => return Err(e.into()),
         }
     }
 
     pub fn write(&self) -> Result<()> {
-        io::write_contents_to_path(&self.db_path, &self.raw_data)
+        io::write_contents_to_yaml(&self.db_path, &self.raw_data)?;
+        Ok(())
     }
 
     pub fn add_item(&mut self, item: Item) -> Result<()> {

@@ -7,7 +7,7 @@ use crossterm::{
     style::Print,
 };
 
-use crate::error::{Error, Result};
+use crate::{Error, Result};
 
 pub fn wait_for_string<W: Write>(w: &mut W) -> Result<String> {
     let mut input = String::new();

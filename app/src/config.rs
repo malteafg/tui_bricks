@@ -11,7 +11,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let mut db_path = io::get_storage_dir().unwrap();
+        let mut db_path = io::get_storage_dir();
         db_path.push("database.yml");
         Self {
             db_path: db_path.to_string_lossy().to_string(),

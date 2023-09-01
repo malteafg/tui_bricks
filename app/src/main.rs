@@ -13,7 +13,7 @@ fn get_user_db_path() -> Result<PathBuf> {
     };
     use tui_bricks::config::Config;
 
-    let mut config_path = tui_bricks::io::get_config_dir()?;
+    let mut config_path = tui_bricks::io::get_config_dir();
     config_path.push("config.yml");
 
     let config: Config = Figment::from(Serialized::defaults(Config::default()))
@@ -53,7 +53,7 @@ where
     loop {
         match state.wait_for_cmd(w) {
             Ok(()) => {}
-            Err(Error::Quit) => {
+            Err(Error::TermError(term_lib::Error::Quit)) => {
                 quit(w)?;
                 return Ok(());
             }

@@ -5,11 +5,12 @@ use std::path::PathBuf;
 use crossterm::{cursor, execute, queue};
 use strum::IntoEnumIterator;
 
+use term_lib::display;
+use term_lib::input;
+
 use crate::command::{Cmd, MultiCmd};
 use crate::data::{ColorGroup, Database, Item};
-use crate::display;
 use crate::error::{Error, Result};
-use crate::input;
 use crate::mode::Mode;
 
 macro_rules! bail {
@@ -49,8 +50,8 @@ impl State {
 
         let cmd_char = match input::wait_for_cmdchar() {
             Ok(c) => c,
-            Err(Error::Escape) => return Ok(()),
-            Err(e) => return Err(e),
+            Err(term_lib::Error::Escape) => return Ok(()),
+            Err(e) => return Err(e.into()),
         };
 
         let Some(cmd) = possible_cmds.get(cmd_char) else {
@@ -59,7 +60,7 @@ impl State {
 
         let new_mode = self.execute_cmd(w, cmd);
 
-        if let Err(Error::Escape) = new_mode {
+        if let Err(Error::TermError(term_lib::Error::Escape)) = new_mode {
             return Ok(());
         }
 
@@ -82,12 +83,7 @@ impl State {
 
         w.flush()?;
 
-        let cmd_char = match input::wait_for_cmdchar() {
-            Ok(c) => c,
-            Err(Error::Escape) => return Err(Error::Escape),
-            Err(e) => return Err(e),
-        };
-
+        let cmd_char = input::wait_for_cmdchar()?;
         let Some(cmd) = possible_cmds.get(cmd_char) else {
             return self.handle_multi_cmd(w, m_cmd);
         };
@@ -104,7 +100,7 @@ impl State {
         match cmd {
             Quit => {
                 execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
-                return Err(Error::Quit);
+                return Err(Error::TermError(term_lib::Error::Quit));
             }
             AddItem => self.add_item(w),
             Edit => self.edit_item(),

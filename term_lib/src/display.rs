@@ -9,9 +9,9 @@ use crossterm::{
     terminal::{self, ClearType},
 };
 
-use crate::command::CmdChar;
-use crate::error::{Error, Result};
+use crate::cmd::CmdChar;
 use crate::input;
+use crate::{Error, Result};
 
 pub fn emit_line<W: Write, D: Display>(w: &mut W, line: D) -> Result<()> {
     queue!(w, Print(line), cursor::MoveToNextLine(1))?;
@@ -28,11 +28,6 @@ pub fn header<W: Write>(w: &mut W, header: &str) -> Result<()> {
     emit_iter(w, header.split("\n"))?;
     emit_dash(w)?;
     queue!(w, cursor::MoveToNextLine(1))?;
-    Ok(())
-}
-
-pub fn default_header<W: Write>(w: &mut W) -> Result<()> {
-    header(w, "Welcome to TUI Bricks")?;
     Ok(())
 }
 

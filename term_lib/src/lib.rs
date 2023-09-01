@@ -1,5 +1,9 @@
 use thiserror::Error;
 
+pub mod cmd;
+pub mod display;
+pub mod input;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("IO error")]
@@ -11,6 +15,11 @@ pub enum Error {
 
     #[error("parsing error")]
     ParsingError(#[from] std::num::ParseIntError),
+
+    #[error("escape was pressed")]
+    Escape,
+    #[error("signal to quit program was sent")]
+    Quit,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

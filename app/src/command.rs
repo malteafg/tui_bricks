@@ -1,8 +1,5 @@
 use std::fmt;
-
-pub trait CmdChar {
-    fn get_char(&self) -> char;
-}
+use term_lib::cmd::CmdChar;
 
 /// Appearence order is as the order is written in code.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
