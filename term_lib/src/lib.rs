@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 pub mod cmd;
+pub mod cmd_test;
 pub mod display;
 pub mod input;
 
