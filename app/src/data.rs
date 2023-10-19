@@ -32,6 +32,7 @@ pub enum ColorGroup {
     Nice,
     Translucent,
     Colorful,
+    Misc,
     Other(String),
 }
 
@@ -47,6 +48,7 @@ impl CmdChar for ColorGroup {
             Nice => 'n',
             Translucent => 't',
             Colorful => 'c',
+            Misc => 'm',
             Other(_) => 'o',
         }
     }
@@ -64,6 +66,7 @@ impl fmt::Display for ColorGroup {
             Nice => write!(f, "Nice"),
             Translucent => write!(f, "Translucent"),
             Colorful => write!(f, "Colorful"),
+            Misc => write!(f, "Misc"),
             Other(name) => write!(f, "{name}"),
         }
     }
