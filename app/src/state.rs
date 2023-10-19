@@ -144,11 +144,20 @@ impl State {
 
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
-        let color_group = display::select_from_list_char(
+        let mut color_group = display::select_from_list_char(
             w,
             "Select a color group by typing its first letter\n(you can add more groups later)",
             &ColorGroup::iter().collect(),
         )?;
+
+        if let ColorGroup::Other(_) = color_group {
+            display::clear(w)?;
+            let color_name = display::input_string(
+                w,
+                &format!("Enter the name of the color:"),
+            )?;
+            color_group = ColorGroup::Other(color_name);
+        }
 
         display::clear(w)?;
         display::emit_line(w, "Adding a new item to the database")?;
@@ -215,7 +224,7 @@ impl State {
 
         let mut info =
             format!("{} contains the following items:\n\n", searched_loc);
-        for &(id, color_group) in locations.iter() {
+        for (id, color_group) in locations.iter() {
             info.push_str(&format!(
                 "Part ID: {}, color group: {}",
                 id, color_group
@@ -346,11 +355,20 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options - &item.get_color_set();
 
-        let color_group = display::select_from_list_char(
+        let mut color_group = display::select_from_list_char(
             w,
             "Select a color group for which to add a location",
             &options,
         )?;
+
+        if let ColorGroup::Other(_) = color_group {
+            display::clear(w)?;
+            let color_name = display::input_string(
+                w,
+                &format!("Enter the name of the color:"),
+            )?;
+            color_group = ColorGroup::Other(color_name);
+        }
 
         display::clear(w)?;
         display::emit_line(
@@ -394,7 +412,7 @@ impl State {
 
         let color_group = display::select_from_list_char(
             w,
-            "Select  color group to remove:",
+            "Select color group to remove:",
             &options,
         )?;
         let mut new_item = item.clone();

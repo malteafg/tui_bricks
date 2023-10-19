@@ -18,7 +18,7 @@ use crate::io;
     PartialEq,
     Eq,
     Clone,
-    Copy,
+    // Copy,
     EnumIter,
     Ord,
     PartialOrd,
@@ -32,12 +32,13 @@ pub enum ColorGroup {
     Nice,
     Translucent,
     Colorful,
+    Other(String),
 }
 
 impl CmdChar for ColorGroup {
     fn get_char(&self) -> char {
         use ColorGroup::*;
-        match self {
+        match &self {
             All => 'a',
             Basic => 'b',
             Earth => 'e',
@@ -46,6 +47,7 @@ impl CmdChar for ColorGroup {
             Nice => 'n',
             Translucent => 't',
             Colorful => 'c',
+            Other(_) => 'o',
         }
     }
 }
@@ -53,7 +55,7 @@ impl CmdChar for ColorGroup {
 impl fmt::Display for ColorGroup {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ColorGroup::*;
-        match self {
+        match &self {
             All => write!(f, "All"),
             Basic => write!(f, "Basic"),
             Earth => write!(f, "Earth"),
@@ -62,6 +64,7 @@ impl fmt::Display for ColorGroup {
             Nice => write!(f, "Nice"),
             Translucent => write!(f, "Translucent"),
             Colorful => write!(f, "Colorful"),
+            Other(name) => write!(f, "{name}"),
         }
     }
 }
@@ -119,7 +122,7 @@ impl Item {
     }
 
     pub fn get_color_set(&self) -> BTreeSet<ColorGroup> {
-        self.location.iter().map(|(c, _)| *c).collect()
+        self.location.iter().map(|(c, _)| c.clone()).collect()
     }
 
     pub fn add_color_group(
@@ -331,7 +334,9 @@ impl Database {
 
     pub fn get_item_by_id(&self, part_id: u32) -> Result<&Item> {
         for item in self.raw_data.iter() {
-            if item.get_id() == part_id {
+            if item.get_id() == part_id
+                || item.get_alternative_ids().contains(&part_id)
+            {
                 return Ok(&item);
             }
         }
@@ -383,7 +388,7 @@ impl Database {
         for item in self.raw_data.iter() {
             for (color_group, o_loc) in item.get_locations() {
                 if o_loc == loc {
-                    res.push((item.get_id(), *color_group));
+                    res.push((item.get_id(), color_group.clone()));
                 }
             }
         }
