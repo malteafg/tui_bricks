@@ -41,6 +41,11 @@ pub fn emit_iter<W: Write, D: Display>(
     Ok(())
 }
 
+pub fn next_line<W: Write>(w: &mut W) -> Result<()> {
+    queue!(w, cursor::MoveToNextLine(1))?;
+    Ok(())
+}
+
 pub fn input_u32<W: Write>(w: &mut W, text: &str) -> Result<u32> {
     emit_iter(w, text.split("\n"))?;
     emit_line(w, "(Input should be a number)")?;

@@ -2,7 +2,6 @@ use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::PathBuf;
 
-use crossterm::{cursor, execute, queue};
 use strum::IntoEnumIterator;
 
 use term_lib::display;
@@ -43,7 +42,7 @@ impl State {
         let possible_cmds = self.mode.get_possible_cmds();
         display::emit_dash(w)?;
         display::emit_line(w, "List of possible commands:")?;
-        queue!(w, cursor::MoveToNextLine(1))?;
+        display::next_line(w)?;
         display::emit_iter(w, possible_cmds.iter())?;
 
         w.flush()?;
@@ -78,7 +77,7 @@ impl State {
 
         let possible_cmds = m_cmd.get_possible_cmds();
         display::emit_dash(w)?;
-        queue!(w, cursor::MoveToNextLine(1))?;
+        display::next_line(w)?;
         display::emit_iter(w, possible_cmds.iter())?;
 
         w.flush()?;
@@ -99,7 +98,6 @@ impl State {
         use Cmd::*;
         match cmd {
             Quit => {
-                execute!(w, cursor::SetCursorStyle::DefaultUserShape)?;
                 return Err(Error::TermError(term_lib::Error::Quit));
             }
             AddItem => self.add_item(w),

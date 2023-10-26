@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use crossterm::{cursor, execute, style, terminal};
-
 use tui_bricks::error::{Error, Result};
 use tui_bricks::state::State;
 
@@ -24,17 +22,6 @@ fn get_user_db_path() -> Result<PathBuf> {
     Ok(config.get_db_path())
 }
 
-fn quit<W: std::io::Write>(w: &mut W) -> Result<()> {
-    terminal::disable_raw_mode()?;
-    execute!(
-        w,
-        style::ResetColor,
-        cursor::Show,
-        terminal::LeaveAlternateScreen
-    )?;
-    Ok(())
-}
-
 pub fn run<W>(w: &mut W) -> Result<()>
 where
     W: std::io::Write,
@@ -47,18 +34,17 @@ where
 
     let mut state = State::new(db_path)?;
 
-    execute!(w, terminal::EnterAlternateScreen)?;
-    terminal::enable_raw_mode()?;
+    term_lib::init(w)?;
 
     loop {
         match state.wait_for_cmd(w) {
             Ok(()) => {}
             Err(Error::TermError(term_lib::Error::Quit)) => {
-                quit(w)?;
+                term_lib::quit(w)?;
                 return Ok(());
             }
             Err(e) => {
-                quit(w)?;
+                term_lib::quit(w)?;
                 return Err(e);
             }
         }

@@ -1,3 +1,4 @@
+use crossterm::{cursor, execute, style, terminal};
 use thiserror::Error;
 
 pub mod cmd;
@@ -23,3 +24,20 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub fn init<W: std::io::Write>(w: &mut W) -> Result<()> {
+    execute!(w, terminal::EnterAlternateScreen)?;
+    terminal::enable_raw_mode()?;
+    Ok(())
+}
+
+pub fn quit<W: std::io::Write>(w: &mut W) -> Result<()> {
+    terminal::disable_raw_mode()?;
+    execute!(
+        w,
+        style::ResetColor,
+        cursor::Show,
+        terminal::LeaveAlternateScreen
+    )?;
+    Ok(())
+}
