@@ -1,5 +1,4 @@
-use std::fmt;
-use term_lib::cmd::CmdChar;
+use term_lib::command::{CmdList, Command};
 
 /// Appearence order is as the order is written in code.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -34,7 +33,7 @@ pub enum MultiCmd {
     RemoveFromItem,
 }
 
-impl CmdChar for Cmd {
+impl Command for Cmd {
     fn get_char(&self) -> char {
         use Cmd::*;
         match &self {
@@ -60,10 +59,8 @@ impl CmdChar for Cmd {
             SearchLocation => 'l',
         }
     }
-}
 
-impl Cmd {
-    pub fn get_info(&self) -> &str {
+    fn get_info(&self) -> &str {
         use Cmd::*;
         match &self {
             AddItem => "(a)dd a new item to the database",
@@ -95,13 +92,7 @@ impl Cmd {
     }
 }
 
-impl fmt::Display for Cmd {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.get_char(), self.get_info())
-    }
-}
-
-impl CmdChar for MultiCmd {
+impl Command for MultiCmd {
     fn get_char(&self) -> char {
         use MultiCmd::*;
         match &self {
@@ -110,10 +101,19 @@ impl CmdChar for MultiCmd {
             RemoveFromItem => 'r',
         }
     }
+
+    fn get_info(&self) -> &'static str {
+        use MultiCmd::*;
+        match &self {
+            SearchItem => "(s)earch for an item",
+            AddToItem => "(a)dd something to an item",
+            RemoveFromItem => "(r)emove something from an item",
+        }
+    }
 }
 
 impl MultiCmd {
-    pub fn get_possible_cmds(&self) -> CmdList {
+    pub fn get_possible_cmds(&self) -> CmdList<Cmd> {
         use MultiCmd::*;
         match &self {
             SearchItem => CmdList::new(vec![
@@ -136,53 +136,38 @@ impl MultiCmd {
             RemoveFromItem => "What would you like to remove to this item?",
         }
     }
-
-    pub fn get_info(&self) -> &str {
-        use MultiCmd::*;
-        match &self {
-            SearchItem => "(s)earch for an item",
-            AddToItem => "(a)dd something to an item",
-            RemoveFromItem => "(r)emove something from an item",
-        }
-    }
 }
 
-impl fmt::Display for MultiCmd {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.get_char(), self.get_info())
-    }
-}
+// pub struct CmdList {
+//     cmds: Vec<Cmd>,
+// }
 
-pub struct CmdList {
-    cmds: Vec<Cmd>,
-}
+// impl CmdList {
+//     pub fn new(mut cmds: Vec<Cmd>) -> Self {
+//         cmds.sort();
+//         CmdList { cmds }
+//     }
 
-impl CmdList {
-    pub fn new(mut cmds: Vec<Cmd>) -> Self {
-        cmds.sort();
-        CmdList { cmds }
-    }
+//     pub fn get(&self, char: char) -> Option<Cmd> {
+//         for &cmd in &self.cmds {
+//             if cmd.get_char() == char {
+//                 return Some(cmd);
+//             }
+//         }
+//         None
+//     }
+// }
 
-    pub fn get(&self, char: char) -> Option<Cmd> {
-        for &cmd in &self.cmds {
-            if cmd.get_char() == char {
-                return Some(cmd);
-            }
-        }
-        None
-    }
-}
+// impl core::ops::Deref for CmdList {
+//     type Target = Vec<Cmd>;
 
-impl core::ops::Deref for CmdList {
-    type Target = Vec<Cmd>;
+//     fn deref(self: &'_ Self) -> &'_ Self::Target {
+//         &self.cmds
+//     }
+// }
 
-    fn deref(self: &'_ Self) -> &'_ Self::Target {
-        &self.cmds
-    }
-}
-
-impl core::ops::DerefMut for CmdList {
-    fn deref_mut(self: &'_ mut Self) -> &'_ mut Self::Target {
-        &mut self.cmds
-    }
-}
+// impl core::ops::DerefMut for CmdList {
+//     fn deref_mut(self: &'_ mut Self) -> &'_ mut Self::Target {
+//         &mut self.cmds
+//     }
+// }

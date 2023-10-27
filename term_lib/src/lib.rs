@@ -1,9 +1,10 @@
 use crossterm::{cursor, execute, style, terminal};
 use thiserror::Error;
 
-pub mod cmd;
+pub mod command;
 pub mod display;
 pub mod input;
+pub mod prompt;
 
 #[derive(Error, Debug)]
 pub enum Error {

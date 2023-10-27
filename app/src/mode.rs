@@ -1,8 +1,9 @@
 use std::fmt;
 
+use term_lib::command::CmdList;
 use term_lib::display;
 
-use crate::command::{Cmd, CmdList, MultiCmd};
+use crate::cmd::{Cmd, MultiCmd};
 use crate::data::Item;
 use crate::error::Result;
 
@@ -13,7 +14,7 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub fn get_possible_cmds(&self) -> CmdList {
+    pub fn get_possible_cmds(&self) -> CmdList<Cmd> {
         use Cmd::*;
         use Mode::*;
         match self {
@@ -44,7 +45,7 @@ impl Mode {
         match self {
             Default { info } => {
                 display::header(w, "Welcome to TUI bricks")?;
-                display::emit_iter(w, info.split("\n"))?;
+                display::iter(w, info.split("\n"))?;
             }
             DisplayItem { item, msg } => {
                 if let Some(msg) = msg {
@@ -55,7 +56,7 @@ impl Mode {
                         &format!("Viewing item with part ID {}", item.get_id()),
                     )?;
                 }
-                display::emit_iter(w, item.to_string().split("\n"))?;
+                display::iter(w, item.to_string().split("\n"))?;
             }
             EditItem { item, msg } => {
                 if let Some(msg) = msg {
@@ -69,7 +70,7 @@ impl Mode {
                         ),
                     )?;
                 }
-                display::emit_iter(w, item.to_string().split("\n"))?;
+                display::iter(w, item.to_string().split("\n"))?;
             }
         }
         Ok(())

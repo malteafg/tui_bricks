@@ -4,10 +4,10 @@ use std::path::PathBuf;
 
 use strum::IntoEnumIterator;
 
-use term_lib::display;
-use term_lib::input;
+use term_lib::command::Command;
+use term_lib::{display, input, prompt};
 
-use crate::command::{Cmd, MultiCmd};
+use crate::cmd::{Cmd, MultiCmd};
 use crate::data::{ColorGroup, Database, Item};
 use crate::error::{Error, Result};
 use crate::mode::Mode;
@@ -15,7 +15,7 @@ use crate::mode::Mode;
 macro_rules! bail {
     ( $self:expr, $c:ident ) => {
         return Err(crate::error::Error::CmdModeMismatch {
-            cmd: crate::command::Cmd::$c.to_string(),
+            cmd: crate::cmd::Cmd::$c.display_as_cmd(),
             mode: $self.mode.to_string(),
         })
     };
@@ -40,10 +40,10 @@ impl State {
         self.mode.emit_mode(w)?;
 
         let possible_cmds = self.mode.get_possible_cmds();
-        display::emit_dash(w)?;
-        display::emit_line(w, "List of possible commands:")?;
-        display::next_line(w)?;
-        display::emit_iter(w, possible_cmds.iter())?;
+        display::dash(w)?;
+        display::line(w, "List of possible commands:")?;
+        display::newline(w, 1)?;
+        display::possible_cmds(w, possible_cmds.iter())?;
 
         w.flush()?;
 
@@ -57,7 +57,7 @@ impl State {
             return Ok(());
         };
 
-        let new_mode = self.execute_cmd(w, cmd);
+        let new_mode = self.execute_cmd(w, *cmd);
 
         if let Err(Error::TermError(term_lib::Error::Escape)) = new_mode {
             return Ok(());
@@ -73,12 +73,12 @@ impl State {
         m_cmd: MultiCmd,
     ) -> Result<Mode> {
         display::clear(w)?;
-        display::emit_line(w, m_cmd.get_header())?;
+        display::line(w, m_cmd.get_header())?;
 
         let possible_cmds = m_cmd.get_possible_cmds();
-        display::emit_dash(w)?;
-        display::next_line(w)?;
-        display::emit_iter(w, possible_cmds.iter())?;
+        display::dash(w)?;
+        display::newline(w, 1)?;
+        display::possible_cmds(w, possible_cmds.iter())?;
 
         w.flush()?;
 
@@ -87,7 +87,7 @@ impl State {
             return self.handle_multi_cmd(w, m_cmd);
         };
 
-        self.execute_cmd(w, cmd)
+        self.execute_cmd(w, *cmd)
     }
 
     fn execute_cmd<W: std::io::Write>(
@@ -124,9 +124,9 @@ impl State {
 
     fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
-        display::emit_line(w, "Adding a new item to the database")?;
+        display::line(w, "Adding a new item to the database")?;
         let part_id =
-            display::input_u32(w, "Enter the part ID of the new item")?;
+            prompt::input_u32(w, "Enter the part ID of the new item")?;
 
         if let Some(main_id) = self.db.contains_id(part_id) {
             let item = self.db.get_item_by_id(part_id)?;
@@ -141,8 +141,8 @@ impl State {
         }
 
         display::clear(w)?;
-        display::emit_line(w, "Adding a new item to the database")?;
-        let mut color_group = display::select_from_list_char(
+        display::line(w, "Adding a new item to the database")?;
+        let mut color_group = prompt::select_cmd(
             w,
             "Select a color group by typing its first letter\n(you can add more groups later)",
             &ColorGroup::iter().collect(),
@@ -150,7 +150,7 @@ impl State {
 
         if let ColorGroup::Other(_) = color_group {
             display::clear(w)?;
-            let color_name = display::input_string(
+            let color_name = prompt::input_string(
                 w,
                 &format!("Enter the name of the color:"),
             )?;
@@ -158,8 +158,8 @@ impl State {
         }
 
         display::clear(w)?;
-        display::emit_line(w, "Adding a new item to the database")?;
-        let part_loc = display::input_string(
+        display::line(w, "Adding a new item to the database")?;
+        let part_loc = prompt::input_string(
             w,
             &format!("Enter location of group {}:", color_group),
         )?;
@@ -175,7 +175,7 @@ impl State {
 
     fn search_by_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
-        let searched_id = display::input_u32(
+        let searched_id = prompt::input_u32(
             w,
             "Enter the part ID of the new to search for.",
         )?;
@@ -195,7 +195,7 @@ impl State {
     fn search_by_name(&self) -> Result<Mode> {
         let opts = self.db.get_all_names();
 
-        let searched_name = display::fzf_search(&opts)?;
+        let searched_name = prompt::fzf_search(&opts)?;
 
         if let Ok(item) = self.db.get_item_by_name(&searched_name) {
             return Ok(Mode::DisplayItem {
@@ -211,7 +211,7 @@ impl State {
 
     fn search_by_location(&self) -> Result<Mode> {
         let opts = self.db.get_all_locations();
-        let searched_loc = display::fzf_search(&opts)?;
+        let searched_loc = prompt::fzf_search(&opts)?;
         let locations = self.db.get_items_at_location(&searched_loc);
 
         if locations.is_empty() {
@@ -273,7 +273,7 @@ impl State {
                 old_item.diff(item)
             );
 
-        if display::confirmation_prompt(w, &changes)? {
+        if prompt::confirmation(w, &changes)? {
             Ok(Mode::DisplayItem {
                 item: old_item.clone(),
                 msg: None,
@@ -292,11 +292,8 @@ impl State {
         };
 
         display::clear(w)?;
-        display::emit_line(
-            w,
-            format!("Editing name of part: {}", item.get_id()),
-        )?;
-        let new_name = display::input_string(w, "Enter new name:")?;
+        display::line(w, format!("Editing name of part: {}", item.get_id()))?;
+        let new_name = prompt::input_string(w, "Enter new name:")?;
 
         if let Some(existing_id) = self.db.contains_name(&new_name) {
             return Ok(Mode::EditItem {
@@ -322,11 +319,8 @@ impl State {
         };
 
         display::clear(w)?;
-        display::emit_line(
-            w,
-            format!("Editing amount of part: {}", item.get_id()),
-        )?;
-        let new_amount = display::input_u32(w, "Enter new amount:")?;
+        display::line(w, format!("Editing amount of part: {}", item.get_id()))?;
+        let new_amount = prompt::input_u32(w, "Enter new amount:")?;
 
         let mut new_item = item.clone();
         new_item.set_amount(Some(new_amount));
@@ -342,7 +336,7 @@ impl State {
         };
 
         display::clear(w)?;
-        display::emit_line(
+        display::line(
             w,
             format!(
                 "Adding a new color group to item with ID: {}",
@@ -353,7 +347,7 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options - &item.get_color_set();
 
-        let mut color_group = display::select_from_list_char(
+        let mut color_group = prompt::select_cmd(
             w,
             "Select a color group for which to add a location",
             &options,
@@ -361,7 +355,7 @@ impl State {
 
         if let ColorGroup::Other(_) = color_group {
             display::clear(w)?;
-            let color_name = display::input_string(
+            let color_name = prompt::input_string(
                 w,
                 &format!("Enter the name of the color:"),
             )?;
@@ -369,7 +363,7 @@ impl State {
         }
 
         display::clear(w)?;
-        display::emit_line(
+        display::line(
             w,
             format!(
                 "Adding a new color group to item with ID: {}",
@@ -377,7 +371,7 @@ impl State {
             ),
         )?;
 
-        let part_loc = display::input_string(
+        let part_loc = prompt::input_string(
             w,
             &format!("Enter location of group {}:", color_group),
         )?;
@@ -397,7 +391,7 @@ impl State {
         };
 
         display::clear(w)?;
-        display::emit_line(
+        display::line(
             w,
             format!(
                 "Removing a color group from item with ID: {}",
@@ -408,11 +402,8 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options & &item.get_color_set();
 
-        let color_group = display::select_from_list_char(
-            w,
-            "Select color group to remove:",
-            &options,
-        )?;
+        let color_group =
+            prompt::select_cmd(w, "Select color group to remove:", &options)?;
         let mut new_item = item.clone();
         new_item.remove_color_group(color_group);
         Ok(Mode::EditItem {
@@ -427,7 +418,7 @@ impl State {
         };
 
         display::clear(w)?;
-        let new_id = display::input_u32(
+        let new_id = prompt::input_u32(
             w,
             "Enter the new alternative part ID to add to this item",
         )?;
@@ -459,7 +450,7 @@ impl State {
         display::clear(w)?;
 
         let options = item.get_alternative_ids().iter().map(|i| *i).collect();
-        let alt_id = display::select_from_list(
+        let alt_id = prompt::select_from_list(
             w,
             "Which alternative ID do you want to remove?",
             &options,
@@ -479,14 +470,14 @@ impl State {
         };
 
         display::clear(w)?;
-        display::emit_iter(w, item.to_string().split("\n"))?;
+        display::iter(w, item.to_string().split("\n"))?;
 
         let changes = format!(
             "Are you absolutely sure that you want to delete the item with ID: {}?\n",
             item.get_id(),
         );
 
-        if display::confirmation_prompt(w, &changes)? {
+        if prompt::confirmation(w, &changes)? {
             self.db.remove_item(item.get_id())?;
             Ok(Mode::Default {
                 info: format!("Item with ID: {} was deleted.", item.get_id()),

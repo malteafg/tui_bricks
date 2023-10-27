@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
-use term_lib::cmd::CmdChar;
+use term_lib::command::Command;
 
 use crate::error::{Error, Result};
 use crate::io;
@@ -36,7 +36,7 @@ pub enum ColorGroup {
     Other(String),
 }
 
-impl CmdChar for ColorGroup {
+impl Command for ColorGroup {
     fn get_char(&self) -> char {
         use ColorGroup::*;
         match &self {
@@ -52,23 +52,27 @@ impl CmdChar for ColorGroup {
             Other(_) => 'o',
         }
     }
+
+    fn get_info(&self) -> &str {
+        use ColorGroup::*;
+        match &self {
+            All => "All",
+            Basic => "Basic",
+            Earth => "Earth",
+            Grey => "Grey",
+            Road => "Road",
+            Nice => "Nice",
+            Translucent => "Translucent",
+            Colorful => "Colorful",
+            Misc => "Misc",
+            Other(name) => name,
+        }
+    }
 }
 
 impl fmt::Display for ColorGroup {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use ColorGroup::*;
-        match &self {
-            All => write!(f, "All"),
-            Basic => write!(f, "Basic"),
-            Earth => write!(f, "Earth"),
-            Grey => write!(f, "Grey"),
-            Road => write!(f, "Road"),
-            Nice => write!(f, "Nice"),
-            Translucent => write!(f, "Translucent"),
-            Colorful => write!(f, "Colorful"),
-            Misc => write!(f, "Misc"),
-            Other(name) => write!(f, "{name}"),
-        }
+        write!(f, "{}", self.get_info())
     }
 }
 
