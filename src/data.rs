@@ -30,6 +30,7 @@ pub enum ColorGroup {
     Grey,
     Road,
     Nice,
+    Build,
     Translucent,
     Colorful,
     Misc,
@@ -46,6 +47,7 @@ impl Command for ColorGroup {
             Grey => 'g',
             Road => 'r',
             Nice => 'n',
+            Build => 'u',
             Translucent => 't',
             Colorful => 'c',
             Misc => 'm',
@@ -62,6 +64,7 @@ impl Command for ColorGroup {
             Grey => "Grey",
             Road => "Road",
             Nice => "Nice",
+            Build => "Build",
             Translucent => "Translucent",
             Colorful => "Colorful",
             Misc => "Misc",
@@ -132,11 +135,7 @@ impl Item {
         self.location.iter().map(|(c, _)| c.clone()).collect()
     }
 
-    pub fn add_color_group(
-        &mut self,
-        color_group: ColorGroup,
-        location: String,
-    ) {
+    pub fn add_color_group(&mut self, color_group: ColorGroup, location: String) {
         self.location.push((color_group, location))
     }
 
@@ -217,11 +216,7 @@ impl fmt::Display for Item {
 
         let mut loc_string = "Location of each color group:\n".to_owned();
         for (color_group, loc) in self.location.iter() {
-            loc_string.push_str(&format!(
-                "{}: {}\n",
-                color_group.to_string(),
-                loc
-            ));
+            loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
         }
 
         write!(
@@ -261,9 +256,7 @@ impl Database {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         match io::read_contents_from_yaml(&db_path) {
             Ok(raw_data) => Ok(Self { raw_data, db_path }),
-            Err(term_lib::Error::IOError(io_error))
-                if io_error.kind() == ErrorKind::NotFound =>
-            {
+            Err(term_lib::Error::IOError(io_error)) if io_error.kind() == ErrorKind::NotFound => {
                 let raw_data = RawDatabase::default();
                 let db = Self { raw_data, db_path };
                 db.write()?;
@@ -318,9 +311,7 @@ impl Database {
 
     pub fn contains_id(&self, part_id: u32) -> Option<u32> {
         for item in self.raw_data.iter() {
-            if item.get_id() == part_id
-                || item.get_alternative_ids().contains(&part_id)
-            {
+            if item.get_id() == part_id || item.get_alternative_ids().contains(&part_id) {
                 return Some(item.get_id());
             }
         }
@@ -341,9 +332,7 @@ impl Database {
 
     pub fn get_item_by_id(&self, part_id: u32) -> Result<&Item> {
         for item in self.raw_data.iter() {
-            if item.get_id() == part_id
-                || item.get_alternative_ids().contains(&part_id)
-            {
+            if item.get_id() == part_id || item.get_alternative_ids().contains(&part_id) {
                 return Ok(&item);
             }
         }
@@ -415,10 +404,7 @@ pub mod tests {
             alternative_ids: vec![123, 1324],
             name: Some(String::from_str("Testid").unwrap()),
             amount: None,
-            location: vec![(
-                ColorGroup::All,
-                String::from_str("B1A3").unwrap(),
-            )],
+            location: vec![(ColorGroup::All, String::from_str("B1A3").unwrap())],
         };
 
         let item2 = Item {
@@ -426,10 +412,7 @@ pub mod tests {
             alternative_ids: vec![12, 14],
             name: Some(String::from_str("blah blah").unwrap()),
             amount: None,
-            location: vec![(
-                ColorGroup::All,
-                String::from_str("B1A4").unwrap(),
-            )],
+            location: vec![(ColorGroup::All, String::from_str("B1A4").unwrap())],
         };
 
         let test = RawDatabase {

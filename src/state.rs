@@ -67,11 +67,7 @@ impl State {
         return Ok(());
     }
 
-    fn handle_multi_cmd<W: std::io::Write>(
-        &mut self,
-        w: &mut W,
-        m_cmd: MultiCmd,
-    ) -> Result<Mode> {
+    fn handle_multi_cmd<W: std::io::Write>(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
         display::clear(w)?;
         display::line(w, m_cmd.get_header())?;
 
@@ -90,11 +86,7 @@ impl State {
         self.execute_cmd(w, *cmd)
     }
 
-    fn execute_cmd<W: std::io::Write>(
-        &mut self,
-        w: &mut W,
-        cmd: Cmd,
-    ) -> Result<Mode> {
+    fn execute_cmd<W: std::io::Write>(&mut self, w: &mut W, cmd: Cmd) -> Result<Mode> {
         use Cmd::*;
         match cmd {
             Quit => {
@@ -125,8 +117,7 @@ impl State {
     fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         display::line(w, "Adding a new item to the database")?;
-        let part_id =
-            prompt::input_u32(w, "Enter the part ID of the new item")?;
+        let part_id = prompt::input_u32(w, "Enter the part ID of the new item")?;
 
         if let Some(main_id) = self.db.contains_id(part_id) {
             let item = self.db.get_item_by_id(part_id)?;
@@ -150,19 +141,14 @@ impl State {
 
         if let ColorGroup::Other(_) = color_group {
             display::clear(w)?;
-            let color_name = prompt::input_string(
-                w,
-                &format!("Enter the name of the color:"),
-            )?;
+            let color_name = prompt::input_string(w, &format!("Enter the name of the color:"))?;
             color_group = ColorGroup::Other(color_name);
         }
 
         display::clear(w)?;
         display::line(w, "Adding a new item to the database")?;
-        let part_loc = prompt::input_string(
-            w,
-            &format!("Enter location of group {}:", color_group),
-        )?;
+        let part_loc =
+            prompt::input_string(w, &format!("Enter location of group {}:", color_group))?;
         let part_loc = part_loc.to_uppercase();
 
         let new_item = Item::new(part_id, color_group, part_loc.to_owned());
@@ -175,10 +161,7 @@ impl State {
 
     fn search_by_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
-        let searched_id = prompt::input_u32(
-            w,
-            "Enter the part ID of the new to search for.",
-        )?;
+        let searched_id = prompt::input_u32(w, "Enter the part ID of the new to search for.")?;
 
         if let Ok(item) = self.db.get_item_by_id(searched_id) {
             return Ok(Mode::DisplayItem {
@@ -220,13 +203,9 @@ impl State {
             });
         }
 
-        let mut info =
-            format!("{} contains the following items:\n\n", searched_loc);
+        let mut info = format!("{} contains the following items:\n\n", searched_loc);
         for (id, color_group) in locations.iter() {
-            info.push_str(&format!(
-                "Part ID: {}, color group: {}",
-                id, color_group
-            ));
+            info.push_str(&format!("Part ID: {}, color group: {}", id, color_group));
             info.push('\n');
         }
 
@@ -269,9 +248,9 @@ impl State {
 
         display::clear(w)?;
         let changes = format!(
-                "Are you sure you want to quit editing and cancel these changes?\n{}",
-                old_item.diff(item)
-            );
+            "Are you sure you want to quit editing and cancel these changes?\n{}",
+            old_item.diff(item)
+        );
 
         if prompt::confirmation(w, &changes)? {
             Ok(Mode::DisplayItem {
@@ -293,7 +272,7 @@ impl State {
 
         display::clear(w)?;
         display::line(w, format!("Editing name of part: {}", item.get_id()))?;
-        let new_name = prompt::input_string(w, "Enter new name:")?;
+        let new_name = prompt::edit_string(w, "Enter new name:", item.get_name())?;
 
         if let Some(existing_id) = self.db.contains_name(&new_name) {
             return Ok(Mode::EditItem {
@@ -355,10 +334,7 @@ impl State {
 
         if let ColorGroup::Other(_) = color_group {
             display::clear(w)?;
-            let color_name = prompt::input_string(
-                w,
-                &format!("Enter the name of the color:"),
-            )?;
+            let color_name = prompt::input_string(w, &format!("Enter the name of the color:"))?;
             color_group = ColorGroup::Other(color_name);
         }
 
@@ -371,10 +347,8 @@ impl State {
             ),
         )?;
 
-        let part_loc = prompt::input_string(
-            w,
-            &format!("Enter location of group {}:", color_group),
-        )?;
+        let part_loc =
+            prompt::input_string(w, &format!("Enter location of group {}:", color_group))?;
         let part_loc = part_loc.to_uppercase();
 
         let mut new_item = item.clone();
@@ -402,8 +376,7 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options & &item.get_color_set();
 
-        let color_group =
-            prompt::select_cmd(w, "Select color group to remove:", &options)?;
+        let color_group = prompt::select_cmd(w, "Select color group to remove:", &options)?;
         let mut new_item = item.clone();
         new_item.remove_color_group(color_group);
         Ok(Mode::EditItem {
@@ -418,10 +391,7 @@ impl State {
         };
 
         display::clear(w)?;
-        let new_id = prompt::input_u32(
-            w,
-            "Enter the new alternative part ID to add to this item",
-        )?;
+        let new_id = prompt::input_u32(w, "Enter the new alternative part ID to add to this item")?;
 
         if let Some(main_id) = self.db.contains_id(new_id) {
             let msg = Some(format!(
@@ -450,11 +420,8 @@ impl State {
         display::clear(w)?;
 
         let options = item.get_alternative_ids().iter().map(|i| *i).collect();
-        let alt_id = prompt::select_from_list(
-            w,
-            "Which alternative ID do you want to remove?",
-            &options,
-        )?;
+        let alt_id =
+            prompt::select_from_list(w, "Which alternative ID do you want to remove?", &options)?;
 
         let mut new_item = item.clone();
         new_item.remove_alt_id(alt_id);
