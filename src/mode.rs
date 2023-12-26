@@ -18,20 +18,14 @@ impl Mode {
         use Cmd::*;
         use Mode::*;
         match self {
-            Default { .. } => {
-                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit])
+            Default { .. } => CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit]),
+            DisplayItem { .. } => {
+                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit, Edit])
             }
-            DisplayItem { .. } => CmdList::new(vec![
-                AddItem,
-                MCmd(MultiCmd::SearchItem),
-                Quit,
-                Edit,
-            ]),
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
                 QuitEdit,
                 EditName,
-                EditAmount,
                 MCmd(MultiCmd::AddToItem),
                 MCmd(MultiCmd::RemoveFromItem),
                 DeleteItem,
@@ -51,10 +45,7 @@ impl Mode {
                 if let Some(msg) = msg {
                     display::header(w, msg)?;
                 } else {
-                    display::header(
-                        w,
-                        &format!("Viewing item with part ID {}", item.get_id()),
-                    )?;
+                    display::header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
                 }
                 display::iter(w, item.to_string().split("\n"))?;
             }
@@ -64,10 +55,7 @@ impl Mode {
                 } else {
                     display::header(
                         w,
-                        &format!(
-                            "Now editing item with part ID {}",
-                            item.get_id()
-                        ),
+                        &format!("Now editing item with part ID {}", item.get_id()),
                     )?;
                 }
                 display::iter(w, item.to_string().split("\n"))?;

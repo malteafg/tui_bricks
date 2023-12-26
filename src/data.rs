@@ -84,7 +84,6 @@ pub struct Item {
     id: u32,
     alternative_ids: Vec<u32>,
     name: String,
-    amount: Option<u32>,
     location: Vec<(ColorGroup, String)>,
 }
 
@@ -94,7 +93,6 @@ impl Item {
             id,
             alternative_ids: Vec::new(),
             name,
-            amount: None,
             location: Vec::new(),
         }
     }
@@ -111,20 +109,12 @@ impl Item {
         &self.name
     }
 
-    pub fn get_amount(&self) -> Option<u32> {
-        self.amount
-    }
-
     pub fn get_locations(&self) -> &[(ColorGroup, String)] {
         &self.location
     }
 
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
-    }
-
-    pub fn set_amount(&mut self, amount: Option<u32>) {
-        self.amount = amount;
     }
 
     pub fn get_color_set(&self) -> BTreeSet<ColorGroup> {
@@ -180,13 +170,6 @@ impl Item {
                 other.get_name()
             ));
         }
-        if self.get_amount() != other.get_amount() {
-            diff.push_str(&format!(
-                "Amount: {:#?} -> {:#?}\n",
-                self.get_amount(),
-                other.get_amount()
-            ));
-        }
         if self.get_locations() != other.get_locations() {
             diff.push_str(&format!(
                 "Locations: {:#?} -> {:#?}\n",
@@ -212,11 +195,6 @@ impl fmt::Display for Item {
             res
         };
 
-        let amount = match self.amount {
-            Some(amount) => amount.to_string(),
-            None => "unspecified".to_string(),
-        };
-
         let mut loc_string = "Location of each color group:\n".to_owned();
         for (color_group, loc) in self.location.iter() {
             loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
@@ -224,8 +202,8 @@ impl fmt::Display for Item {
 
         write!(
             f,
-            "Part ID: {}\nAlternative IDs: {}\n\nName: {}\nAmount: {}\n\n{}",
-            self.id, altids, name, amount, loc_string,
+            "Part ID: {}\nAlternative IDs: {}\n\nName: {}\n\n{}",
+            self.id, altids, name, loc_string,
         )
     }
 }
@@ -436,7 +414,6 @@ pub mod tests {
             id: 44,
             alternative_ids: vec![123, 1324],
             name: "Testid".to_string(),
-            amount: None,
             location: vec![(ColorGroup::All, String::from_str("B1A3").unwrap())],
         };
 
@@ -444,7 +421,6 @@ pub mod tests {
             id: 43,
             alternative_ids: vec![12, 14],
             name: "blah blah".to_string(),
-            amount: None,
             location: vec![(ColorGroup::All, String::from_str("B1A4").unwrap())],
         };
 

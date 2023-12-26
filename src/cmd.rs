@@ -11,7 +11,6 @@ pub enum Cmd {
     SaveEdit,
     QuitEdit,
     EditName,
-    EditAmount,
 
     MCmd(MultiCmd),
 
@@ -43,7 +42,6 @@ impl Command for Cmd {
             SaveEdit => 's',
             QuitEdit => 'q',
             EditName => 'n',
-            EditAmount => 'm',
             DeleteItem => 'd',
 
             MCmd(m_cmd) => m_cmd.get_char(),
@@ -67,22 +65,15 @@ impl Command for Cmd {
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
             SaveEdit => "(s)ave the current changes and quit editing",
-            QuitEdit => {
-                "(q)uit editing this part without saving changes currently made"
-            }
+            QuitEdit => "(q)uit editing this part without saving changes currently made",
             EditName => "edit the (n)ame of this part",
-            EditAmount => "edit the a(m)ount of this part",
             DeleteItem => "(d)elete the current item",
             MCmd(m_cmd) => m_cmd.get_info(),
 
-            AddColorGroup => {
-                "add a new (c)olor group and its location for this item"
-            }
+            AddColorGroup => "add a new (c)olor group and its location for this item",
             AddAltId => "add a new alternative (i)d for this item",
 
-            RemoveColorGroup => {
-                "remove a (c)olor group and its location for this item"
-            }
+            RemoveColorGroup => "remove a (c)olor group and its location for this item",
             RemoveAltId => "remove an alternative (i)d for this item",
 
             SearchPartID => "search by part (i)d",
@@ -122,9 +113,7 @@ impl MultiCmd {
                 Cmd::SearchLocation,
             ]),
             AddToItem => CmdList::new(vec![Cmd::AddColorGroup, Cmd::AddAltId]),
-            RemoveFromItem => {
-                CmdList::new(vec![Cmd::RemoveColorGroup, Cmd::RemoveAltId])
-            }
+            RemoveFromItem => CmdList::new(vec![Cmd::RemoveColorGroup, Cmd::RemoveAltId]),
         }
     }
 

@@ -97,7 +97,6 @@ impl State {
             QuitEdit => self.quit_edit(w),
             SaveEdit => self.save_edit(),
             EditName => self.edit_name(w),
-            EditAmount => self.edit_amount(w),
             DeleteItem => self.delete_item(w),
 
             MCmd(m_cmd) => self.handle_multi_cmd(w, m_cmd),
@@ -270,23 +269,6 @@ impl State {
 
         let mut new_item = item.clone();
         new_item.set_name(&new_name);
-        Ok(Mode::EditItem {
-            item: new_item,
-            msg: None,
-        })
-    }
-
-    fn edit_amount<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: None } = &self.mode else {
-            bail!(self, EditAmount);
-        };
-
-        display::clear(w)?;
-        display::line(w, format!("Editing amount of part: {}", item.get_id()))?;
-        let new_amount = prompt::input_u32(w, "Enter new amount:")?;
-
-        let mut new_item = item.clone();
-        new_item.set_amount(Some(new_amount));
         Ok(Mode::EditItem {
             item: new_item,
             msg: None,
