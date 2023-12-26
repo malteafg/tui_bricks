@@ -384,6 +384,7 @@ impl State {
             prompt::select_from_list(w, "Select color group to remove:", options.iter())?;
         let mut new_item = item.clone();
         new_item.remove_color_group(color_group);
+
         Ok(Mode::EditItem {
             item: new_item,
             msg: None,

@@ -83,7 +83,7 @@ impl fmt::Display for ColorGroup {
 pub struct Item {
     id: u32,
     alternative_ids: Vec<u32>,
-    name: Option<String>,
+    name: String,
     amount: Option<u32>,
     location: Vec<(ColorGroup, String)>,
 }
@@ -93,7 +93,7 @@ impl Item {
         Item {
             id,
             alternative_ids: Vec::new(),
-            name: Some(name),
+            name,
             amount: None,
             location: Vec::new(),
         }
@@ -107,7 +107,7 @@ impl Item {
         &self.alternative_ids
     }
 
-    pub fn get_name(&self) -> &Option<String> {
+    pub fn get_name(&self) -> &String {
         &self.name
     }
 
@@ -120,11 +120,7 @@ impl Item {
     }
 
     pub fn set_name(&mut self, name: &str) {
-        if name.is_empty() {
-            self.name = None;
-        } else {
-            self.name = Some(name.to_string());
-        }
+        self.name = name.to_string();
     }
 
     pub fn set_amount(&mut self, amount: Option<u32>) {
@@ -204,10 +200,7 @@ impl Item {
 
 impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match &self.name {
-            Some(name) => name.to_string(),
-            None => "unspecified".to_string(),
-        };
+        let name = &self.name;
 
         let altids = if self.alternative_ids.is_empty() {
             "None".to_string()
@@ -363,10 +356,7 @@ impl Database {
 
     pub fn contains_name(&self, name: &str) -> Option<u32> {
         for item in self.raw_data.iter() {
-            let Some(other_name) = item.get_name() else {
-                continue;
-            };
-            if other_name.to_lowercase() == name.to_lowercase() {
+            if item.get_name().to_lowercase() == name.to_lowercase() {
                 return Some(item.get_id());
             }
         }
@@ -384,10 +374,8 @@ impl Database {
 
     pub fn get_item_by_name(&self, name: &str) -> Result<&Item> {
         for item in self.raw_data.iter() {
-            if let Some(n) = item.get_name() {
-                if n == name {
-                    return Ok(&item);
-                }
+            if item.get_name().to_lowercase() == name.to_lowercase() {
+                return Ok(&item);
             }
         }
         Err(Error::PartNotFoundName {
@@ -398,10 +386,8 @@ impl Database {
     pub fn get_all_names(&self) -> String {
         let mut res = String::new();
         for item in self.raw_data.iter() {
-            if let Some(n) = item.get_name() {
-                res += n;
-                res.push('\n');
-            }
+            res += item.get_name();
+            res.push('\n');
         }
         res
     }
@@ -449,7 +435,7 @@ pub mod tests {
         let item1 = Item {
             id: 44,
             alternative_ids: vec![123, 1324],
-            name: Some(String::from_str("Testid").unwrap()),
+            name: "Testid".to_string(),
             amount: None,
             location: vec![(ColorGroup::All, String::from_str("B1A3").unwrap())],
         };
@@ -457,7 +443,7 @@ pub mod tests {
         let item2 = Item {
             id: 43,
             alternative_ids: vec![12, 14],
-            name: Some(String::from_str("blah blah").unwrap()),
+            name: "blah blah".to_string(),
             amount: None,
             location: vec![(ColorGroup::All, String::from_str("B1A4").unwrap())],
         };
