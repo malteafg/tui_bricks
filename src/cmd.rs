@@ -23,6 +23,9 @@ pub enum Cmd {
     SearchPartID,
     SearchName,
     SearchLocation,
+
+    ViewStats,
+    QuitStats,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -55,6 +58,9 @@ impl Command for Cmd {
             SearchPartID => 'i',
             SearchName => 'n',
             SearchLocation => 'l',
+
+            ViewStats => 'v',
+            QuitStats => 'q',
         }
     }
 
@@ -79,6 +85,9 @@ impl Command for Cmd {
             SearchPartID => "search by part (i)d",
             SearchName => "search by (n)ame",
             SearchLocation => "search by (l)ocation",
+
+            ViewStats => "(v)iew statistics",
+            QuitStats => "(q)uit viewing statistics",
         }
     }
 }

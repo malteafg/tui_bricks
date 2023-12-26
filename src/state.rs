@@ -110,6 +110,9 @@ impl State {
             SearchPartID => self.search_by_id(w),
             SearchName => self.search_by_name(),
             SearchLocation => self.search_by_location(),
+
+            ViewStats => self.view_stats(),
+            QuitStats => self.quit_stats(),
         }
     }
 
@@ -176,7 +179,7 @@ impl State {
     }
 
     fn search_by_location(&self) -> Result<Mode> {
-        let opts = self.db.get_all_locations();
+        let opts = self.db.get_all_locations_string();
         let searched_loc = prompt::fzf_search(&opts)?;
         let locations = self.db.get_items_at_location(&searched_loc);
 
@@ -446,5 +449,16 @@ impl State {
                 msg: None,
             })
         }
+    }
+
+    fn view_stats(&self) -> Result<Mode> {
+        let stats = self.db.get_stats();
+        Ok(Mode::ViewStatistics { stats })
+    }
+
+    fn quit_stats(&self) -> Result<Mode> {
+        Ok(Mode::Default {
+            info: "Welcome to TUI bricks".to_string(),
+        })
     }
 }

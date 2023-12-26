@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use strum::EnumIter;
+use strum::{EnumIter, IntoEnumIterator};
 
 use term_lib::command::Command;
 
@@ -369,15 +369,18 @@ impl Database {
         }
         res
     }
-
-    pub fn get_all_locations(&self) -> String {
+    pub fn get_all_locations(&self) -> BTreeSet<&String> {
         let mut locs = BTreeSet::new();
         for item in self.raw_data.iter() {
             for (_, loc) in item.get_locations() {
                 locs.insert(loc);
             }
         }
+        locs
+    }
 
+    pub fn get_all_locations_string(&self) -> String {
+        let locs = self.get_all_locations();
         let mut res = String::new();
         for loc in locs.into_iter() {
             res += loc;
@@ -400,6 +403,42 @@ impl Database {
 
     pub fn get_other_color_set(&self) -> &BTreeSet<String> {
         &self.other_color_groups
+    }
+
+    pub fn get_stats(&self) -> DatabaseStats {
+        let num_items = self.raw_data.len();
+
+        let mut num_sorts = 0;
+        for item in self.raw_data.iter() {
+            num_sorts += item.get_locations().len();
+        }
+
+        let num_color_groups = self.get_other_color_set().len() + ColorGroup::iter().len() - 1;
+        let num_locations = self.get_all_locations().len();
+
+        DatabaseStats {
+            num_items,
+            num_sorts,
+            num_color_groups,
+            num_locations,
+        }
+    }
+}
+
+pub struct DatabaseStats {
+    num_items: usize,
+    num_sorts: usize,
+    num_color_groups: usize,
+    num_locations: usize,
+}
+
+impl fmt::Display for DatabaseStats {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Parts: {}\nSorted categories: {}\nColorgroups: {}\nLocations: {}",
+            self.num_items, self.num_sorts, self.num_color_groups, self.num_locations
+        )
     }
 }
 

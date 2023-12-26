@@ -4,13 +4,14 @@ use term_lib::command::CmdList;
 use term_lib::display;
 
 use crate::cmd::{Cmd, MultiCmd};
-use crate::data::Item;
+use crate::data::{DatabaseStats, Item};
 use crate::error::Result;
 
 pub enum Mode {
     Default { info: String },
     DisplayItem { item: Item, msg: Option<String> },
     EditItem { item: Item, msg: Option<String> },
+    ViewStatistics { stats: DatabaseStats },
 }
 
 impl Mode {
@@ -18,10 +19,16 @@ impl Mode {
         use Cmd::*;
         use Mode::*;
         match self {
-            Default { .. } => CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit]),
-            DisplayItem { .. } => {
-                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit, Edit])
+            Default { .. } => {
+                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit, ViewStats])
             }
+            DisplayItem { .. } => CmdList::new(vec![
+                AddItem,
+                MCmd(MultiCmd::SearchItem),
+                Quit,
+                Edit,
+                ViewStats,
+            ]),
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
                 QuitEdit,
@@ -30,6 +37,7 @@ impl Mode {
                 MCmd(MultiCmd::RemoveFromItem),
                 DeleteItem,
             ]),
+            ViewStatistics { .. } => CmdList::new(vec![QuitStats]),
         }
     }
 
@@ -60,6 +68,9 @@ impl Mode {
                 }
                 display::iter(w, item.to_string().split("\n"))?;
             }
+            ViewStatistics { stats } => {
+                display::iter(w, stats.to_string().split("\n"))?;
+            }
         }
         Ok(())
     }
@@ -72,6 +83,7 @@ impl fmt::Display for Mode {
             Default { .. } => write!(f, "Default"),
             DisplayItem { .. } => write!(f, "Display Item"),
             EditItem { .. } => write!(f, "Edit Item"),
+            ViewStatistics { .. } => write!(f, "View Statistics"),
         }
     }
 }
