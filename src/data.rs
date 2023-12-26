@@ -89,13 +89,13 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn new(id: u32, color_group: ColorGroup, location: String) -> Self {
+    pub fn new(id: u32, name: String) -> Self {
         Item {
             id,
             alternative_ids: Vec::new(),
-            name: None,
+            name: Some(name),
             amount: None,
-            location: vec![(color_group, location)],
+            location: Vec::new(),
         }
     }
 
@@ -133,6 +133,16 @@ impl Item {
 
     pub fn get_color_set(&self) -> BTreeSet<ColorGroup> {
         self.location.iter().map(|(c, _)| c.clone()).collect()
+    }
+
+    pub fn get_other_color_set(&self) -> BTreeSet<String> {
+        let mut res = BTreeSet::new();
+        for (c, _) in self.location.iter() {
+            if let ColorGroup::Other(s) = c {
+                res.insert(s.to_string());
+            }
+        }
+        res
     }
 
     pub fn add_color_group(&mut self, color_group: ColorGroup, location: String) {
@@ -250,15 +260,36 @@ impl core::ops::DerefMut for RawDatabase {
 pub struct Database {
     raw_data: RawDatabase,
     db_path: PathBuf,
+    other_color_groups: BTreeSet<String>,
 }
 
 impl Database {
     pub fn new(db_path: PathBuf) -> Result<Self> {
-        match io::read_contents_from_yaml(&db_path) {
-            Ok(raw_data) => Ok(Self { raw_data, db_path }),
+        match io::read_contents_from_yaml::<_, RawDatabase>(&db_path) {
+            Ok(raw_data) => Ok({
+                let mut other_color_groups = BTreeSet::new();
+                for item in raw_data.items.iter() {
+                    for c in item.get_color_set() {
+                        if let ColorGroup::Other(name) = c {
+                            other_color_groups.insert(name.to_string());
+                        }
+                    }
+                }
+                Self {
+                    raw_data,
+                    db_path,
+                    other_color_groups,
+                }
+            }),
             Err(term_lib::Error::IOError(io_error)) if io_error.kind() == ErrorKind::NotFound => {
                 let raw_data = RawDatabase::default();
-                let db = Self { raw_data, db_path };
+                let other_color_groups = BTreeSet::new();
+
+                let db = Self {
+                    raw_data,
+                    db_path,
+                    other_color_groups,
+                };
                 db.write()?;
                 Ok(db)
             }
@@ -278,6 +309,12 @@ impl Database {
             });
         }
 
+        for c in item.get_color_set() {
+            if let ColorGroup::Other(name) = c {
+                self.other_color_groups.insert(name.to_string());
+            }
+        }
+
         self.raw_data.push(item);
         self.write()?;
 
@@ -291,6 +328,12 @@ impl Database {
             .enumerate()
             .find(|&(_, old_item)| item.get_id() == old_item.get_id())
         {
+            for c in item.get_color_set() {
+                if let ColorGroup::Other(name) = c {
+                    self.other_color_groups.insert(name.to_string());
+                }
+            }
+
             self.raw_data[i] = item;
             self.write()?;
 
@@ -389,6 +432,10 @@ impl Database {
             }
         }
         res
+    }
+
+    pub fn get_other_color_set(&self) -> &BTreeSet<String> {
+        &self.other_color_groups
     }
 }
 
