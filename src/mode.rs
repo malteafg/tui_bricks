@@ -7,6 +7,7 @@ use crate::cmd::{Cmd, MultiCmd};
 use crate::data::{DatabaseStats, Item};
 use crate::error::Result;
 
+#[derive(Clone)]
 pub enum Mode {
     Default { info: String },
     DisplayItem { item: Item, msg: Option<String> },
@@ -28,6 +29,7 @@ impl Mode {
                 Quit,
                 Edit,
                 ViewStats,
+                Bricklink,
             ]),
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
@@ -36,6 +38,7 @@ impl Mode {
                 MCmd(MultiCmd::AddToItem),
                 MCmd(MultiCmd::RemoveFromItem),
                 DeleteItem,
+                Bricklink,
             ]),
             ViewStatistics { .. } => CmdList::new(vec![QuitStats]),
         }

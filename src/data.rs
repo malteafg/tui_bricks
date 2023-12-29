@@ -425,6 +425,7 @@ impl Database {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct DatabaseStats {
     num_items: usize,
     num_sorts: usize,

@@ -89,15 +89,18 @@ impl State {
     fn execute_cmd<W: std::io::Write>(&mut self, w: &mut W, cmd: Cmd) -> Result<Mode> {
         use Cmd::*;
         match cmd {
+            AddItem => self.add_item(w),
+            DeleteItem => self.delete_item(w),
+
+            Bricklink => self.open_bricklink(),
+
             Quit => {
                 return Err(Error::TermError(term_lib::Error::Quit));
             }
-            AddItem => self.add_item(w),
             Edit => self.edit_item(),
             QuitEdit => self.quit_edit(w),
             SaveEdit => self.save_edit(),
             EditName => self.edit_name(w),
-            DeleteItem => self.delete_item(w),
 
             MCmd(m_cmd) => self.handle_multi_cmd(w, m_cmd),
 
@@ -460,5 +463,20 @@ impl State {
         Ok(Mode::Default {
             info: "Welcome to TUI bricks".to_string(),
         })
+    }
+
+    fn open_bricklink(&self) -> Result<Mode> {
+        match &self.mode {
+            Mode::EditItem { item, msg: _ } | Mode::DisplayItem { item, msg: _ } => {
+                webbrowser::open(&format!(
+                    "https://www.bricklink.com/v2/catalog/catalogitem.page?P={}",
+                    item.get_id()
+                ))?;
+            }
+            _ => {
+                bail!(self, Bricklink);
+            }
+        }
+        Ok(self.mode.clone())
     }
 }

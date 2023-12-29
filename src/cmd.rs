@@ -6,6 +6,8 @@ pub enum Cmd {
     AddItem,
     DeleteItem,
 
+    Bricklink,
+
     Quit,
     Edit,
     SaveEdit,
@@ -40,12 +42,15 @@ impl Command for Cmd {
         use Cmd::*;
         match &self {
             AddItem => 'a',
+            DeleteItem => 'd',
+
+            Bricklink => 'b',
+
             Quit => 'q',
             Edit => 'e',
             SaveEdit => 's',
             QuitEdit => 'q',
             EditName => 'n',
-            DeleteItem => 'd',
 
             MCmd(m_cmd) => m_cmd.get_char(),
 
@@ -68,12 +73,16 @@ impl Command for Cmd {
         use Cmd::*;
         match &self {
             AddItem => "(a)dd a new item to the database",
+            DeleteItem => "(d)elete the current item",
+
+            Bricklink => "open in (b)ricklink",
+
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
             SaveEdit => "(s)ave the current changes and quit editing",
             QuitEdit => "(q)uit editing this part without saving changes currently made",
             EditName => "edit the (n)ame of this part",
-            DeleteItem => "(d)elete the current item",
+
             MCmd(m_cmd) => m_cmd.get_info(),
 
             AddColorGroup => "add a new (c)olor group and its location for this item",
