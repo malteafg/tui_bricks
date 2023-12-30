@@ -294,11 +294,12 @@ impl State {
         let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
         let options: BTreeSet<ColorGroup> = &options - &item.get_color_set();
 
-        let mut color_group = prompt::select_cmd(
+        let color_group = prompt::select_cmd(
             w,
             "Select a color group for which to add a location",
             options.iter(),
         )?;
+        let mut color_group = color_group.clone();
 
         if let ColorGroup::Other(_) = color_group {
             display::clear(w)?;
