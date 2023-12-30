@@ -9,7 +9,7 @@ use crate::error::Result;
 
 #[derive(Clone)]
 pub enum Mode {
-    Default { info: String },
+    Default { info: Option<String> },
     DisplayItem { item: Item, msg: Option<String> },
     EditItem { item: Item, msg: Option<String> },
     ViewStatistics { stats: DatabaseStats },
@@ -50,7 +50,9 @@ impl Mode {
         match self {
             Default { info } => {
                 display::header(w, "Welcome to TUI bricks")?;
-                display::iter(w, info.split("\n"))?;
+                if let Some(info) = info {
+                    display::iter(w, info.split("\n"))?;
+                }
             }
             DisplayItem { item, msg } => {
                 if let Some(msg) = msg {

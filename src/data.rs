@@ -389,17 +389,39 @@ impl Database {
         res
     }
 
-    pub fn get_items_at_location(&self, loc: &str) -> Vec<(u32, ColorGroup)> {
-        let mut res = Vec::new();
-        for item in self.raw_data.iter() {
+    pub fn get_items_at_location<'a>(&'a self, loc: &str) -> impl Iterator<Item = LocSearch> + 'a {
+        let loc = loc.to_string();
+        self.raw_data.iter().filter_map(move |item| {
+            let mut color_groups = Vec::new();
             for (color_group, o_loc) in item.get_locations() {
-                if o_loc == loc {
-                    res.push((item.get_id(), color_group.clone()));
+                if o_loc == &loc {
+                    color_groups.push(color_group.clone());
                 }
             }
-        }
-        res
+
+            if color_groups.is_empty() {
+                None
+            } else {
+                Some(LocSearch {
+                    id: item.get_id(),
+                    name: item.get_name(),
+                    color_groups,
+                })
+            }
+        })
     }
+
+    // pub fn get_items_at_location(&self, loc: &str) -> Vec<(u32, ColorGroup)> {
+    //     let mut res = Vec::new();
+    //     for item in self.raw_data.iter() {
+    //         for (color_group, o_loc) in item.get_locations() {
+    //             if o_loc == loc {
+    //                 res.push((item.get_id(), color_group.clone()));
+    //             }
+    //         }
+    //     }
+    //     res
+    // }
 
     pub fn get_other_color_set(&self) -> &BTreeSet<String> {
         &self.other_color_groups
@@ -440,6 +462,24 @@ impl fmt::Display for DatabaseStats {
             "Parts: {}\nSorted categories: {}\nColorgroups: {}\nLocations: {}",
             self.num_items, self.num_sorts, self.num_color_groups, self.num_locations
         )
+    }
+}
+
+#[derive(Clone)]
+pub struct LocSearch<'a> {
+    pub id: u32,
+    name: &'a str,
+    color_groups: Vec<ColorGroup>,
+}
+
+impl fmt::Display for LocSearch<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut res = format!("Name: {}\n   Id: {}\n   Color Groups:", self.name, self.id);
+        for color_group in self.color_groups.iter() {
+            res.push_str(&format!("\n       {color_group}"));
+        }
+        res.push_str("\n");
+        write!(f, "{res}")
     }
 }
 

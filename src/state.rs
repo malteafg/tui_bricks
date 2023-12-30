@@ -8,7 +8,7 @@ use term_lib::command::Command;
 use term_lib::{display, input, prompt};
 
 use crate::cmd::{Cmd, MultiCmd};
-use crate::data::{ColorGroup, Database, Item};
+use crate::data::{ColorGroup, Database, Item, LocSearch};
 use crate::error::{Error, Result};
 use crate::mode::Mode;
 
@@ -29,10 +29,7 @@ pub struct State {
 impl State {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let db = Database::new(db_path)?;
-        let mode = Mode::Default {
-            info: "Type any of the following characters to execute the associated command"
-                .to_owned(),
-        };
+        let mode = Mode::Default { info: None };
         Ok(Self { db, mode })
     }
 
@@ -112,7 +109,7 @@ impl State {
 
             SearchPartID => self.search_by_id(w),
             SearchName => self.search_by_name(),
-            SearchLocation => self.search_by_location(),
+            SearchLocation => self.search_by_location(w),
 
             ViewStats => self.view_stats(),
             QuitStats => self.quit_stats(),
@@ -160,7 +157,7 @@ impl State {
         }
 
         Ok(Mode::Default {
-            info: format!("Part {} not found in database", searched_id),
+            info: Some(format!("Part {} not found in database", searched_id)),
         })
     }
 
@@ -177,28 +174,33 @@ impl State {
         }
 
         Ok(Mode::Default {
-            info: format!("Part {} not found in database", searched_name),
+            info: Some(format!("Part {} not found in database", searched_name)),
         })
     }
 
-    fn search_by_location(&self) -> Result<Mode> {
+    fn search_by_location<W: Write>(&self, w: &mut W) -> Result<Mode> {
         let opts = self.db.get_all_locations_string();
         let searched_loc = prompt::fzf_search(&opts)?;
         let locations = self.db.get_items_at_location(&searched_loc);
 
-        if locations.is_empty() {
-            return Ok(Mode::Default {
-                info: format!("{} does not contain anything", searched_loc),
-            });
-        }
+        // if locations.is_empty() {
+        //     return Ok(Mode::Default {
+        //         info: format!("{} does not contain anything", searched_loc),
+        //     });
+        // }
 
-        let mut info = format!("{} contains the following items:\n\n", searched_loc);
-        for (id, color_group) in locations.iter() {
-            info.push_str(&format!("Part ID: {}, color group: {}", id, color_group));
-            info.push('\n');
-        }
+        display::clear(w)?;
 
-        Ok(Mode::Default { info })
+        let info = format!("List of items located at location:\n{}", searched_loc);
+        display::header(w, &info)?;
+        let selected: LocSearch = prompt::select_from_list(w, None, locations)?;
+
+        let item = self.db.get_item_by_id(selected.id)?;
+
+        Ok(Mode::DisplayItem {
+            item: item.clone(),
+            msg: None,
+        })
     }
 
     fn edit_item(&self) -> Result<Mode> {
@@ -313,17 +315,17 @@ impl State {
             let options = options - &item.get_other_color_set();
             let color_name = prompt::select_from_list(
                 w,
-                "Select other color group or create a new one",
+                Some("Select other color group or create a new one"),
                 std::iter::once(&create_new).chain(options.iter()),
             )?;
 
-            if color_name == create_new {
+            if color_name == &create_new {
                 display::clear(w)?;
                 let color_name =
                     prompt::input_string(w, &format!("Enter the name of the new color group:"))?;
                 color_group = ColorGroup::Other(color_name);
             } else {
-                color_group = ColorGroup::Other(color_name);
+                color_group = ColorGroup::Other(color_name.clone());
             }
         }
 
@@ -369,9 +371,9 @@ impl State {
         let options: BTreeSet<ColorGroup> = &options & &item.get_color_set();
 
         let color_group =
-            prompt::select_from_list(w, "Select color group to remove:", options.iter())?;
+            prompt::select_from_list(w, Some("Select color group to remove:"), options.iter())?;
         let mut new_item = item.clone();
-        new_item.remove_color_group(color_group);
+        new_item.remove_color_group(color_group.clone());
 
         Ok(Mode::EditItem {
             item: new_item,
@@ -416,12 +418,12 @@ impl State {
         let options: BTreeSet<u32> = item.get_alternative_ids().iter().map(|i| *i).collect();
         let alt_id = prompt::select_from_list(
             w,
-            "Which alternative ID do you want to remove?",
+            Some("Which alternative ID do you want to remove?"),
             options.iter(),
         )?;
 
         let mut new_item = item.clone();
-        new_item.remove_alt_id(alt_id);
+        new_item.remove_alt_id(*alt_id);
         Ok(Mode::EditItem {
             item: new_item,
             msg: None,
@@ -444,7 +446,7 @@ impl State {
         if prompt::confirmation(w, &changes)? {
             self.db.remove_item(item.get_id())?;
             Ok(Mode::Default {
-                info: format!("Item with ID: {} was deleted.", item.get_id()),
+                info: Some(format!("Item with ID: {} was deleted.", item.get_id())),
             })
         } else {
             Ok(Mode::EditItem {
@@ -460,9 +462,7 @@ impl State {
     }
 
     fn quit_stats(&self) -> Result<Mode> {
-        Ok(Mode::Default {
-            info: "Welcome to TUI bricks".to_string(),
-        })
+        Ok(Mode::Default { info: None })
     }
 
     fn open_bricklink(&self) -> Result<Mode> {
