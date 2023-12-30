@@ -183,12 +183,6 @@ impl State {
         let searched_loc = prompt::fzf_search(&opts)?;
         let locations = self.db.get_items_at_location(&searched_loc);
 
-        // if locations.is_empty() {
-        //     return Ok(Mode::Default {
-        //         info: format!("{} does not contain anything", searched_loc),
-        //     });
-        // }
-
         display::clear(w)?;
 
         let info = format!("List of items located at location:\n{}", searched_loc);

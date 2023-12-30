@@ -144,37 +144,3 @@ impl MultiCmd {
         }
     }
 }
-
-// pub struct CmdList {
-//     cmds: Vec<Cmd>,
-// }
-
-// impl CmdList {
-//     pub fn new(mut cmds: Vec<Cmd>) -> Self {
-//         cmds.sort();
-//         CmdList { cmds }
-//     }
-
-//     pub fn get(&self, char: char) -> Option<Cmd> {
-//         for &cmd in &self.cmds {
-//             if cmd.get_char() == char {
-//                 return Some(cmd);
-//             }
-//         }
-//         None
-//     }
-// }
-
-// impl core::ops::Deref for CmdList {
-//     type Target = Vec<Cmd>;
-
-//     fn deref(self: &'_ Self) -> &'_ Self::Target {
-//         &self.cmds
-//     }
-// }
-
-// impl core::ops::DerefMut for CmdList {
-//     fn deref_mut(self: &'_ mut Self) -> &'_ mut Self::Target {
-//         &mut self.cmds
-//     }
-// }

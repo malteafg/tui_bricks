@@ -389,7 +389,10 @@ impl Database {
         res
     }
 
-    pub fn get_items_at_location<'a>(&'a self, loc: &str) -> impl Iterator<Item = LocSearch> + 'a {
+    pub fn get_items_at_location<'a>(
+        &'a self,
+        loc: &str,
+    ) -> impl Iterator<Item = LocSearch> + Clone + 'a {
         let loc = loc.to_string();
         self.raw_data.iter().filter_map(move |item| {
             let mut color_groups = Vec::new();
@@ -410,18 +413,6 @@ impl Database {
             }
         })
     }
-
-    // pub fn get_items_at_location(&self, loc: &str) -> Vec<(u32, ColorGroup)> {
-    //     let mut res = Vec::new();
-    //     for item in self.raw_data.iter() {
-    //         for (color_group, o_loc) in item.get_locations() {
-    //             if o_loc == loc {
-    //                 res.push((item.get_id(), color_group.clone()));
-    //             }
-    //         }
-    //     }
-    //     res
-    // }
 
     pub fn get_other_color_set(&self) -> &BTreeSet<String> {
         &self.other_color_groups
@@ -465,7 +456,6 @@ impl fmt::Display for DatabaseStats {
     }
 }
 
-#[derive(Clone)]
 pub struct LocSearch<'a> {
     pub id: u32,
     name: &'a str,
