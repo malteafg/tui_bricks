@@ -233,7 +233,7 @@ impl State {
 
         display::clear(w)?;
         let changes = format!(
-            "Are you sure you want to quit editing and cancel these changes?\n{}",
+            "Are you sure you want to quit editing and cancel these changes?\n\n{}",
             old_item.diff(item)
         );
 

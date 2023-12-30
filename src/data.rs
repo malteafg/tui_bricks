@@ -145,26 +145,32 @@ impl Item {
                 other.get_id()
             ));
         }
-        if self.get_alternative_ids() != other.get_alternative_ids() {
-            diff.push_str(&format!(
-                "Alternative IDs: {:#?} -> {:#?}\n",
-                self.get_alternative_ids(),
-                other.get_alternative_ids()
-            ));
-        }
         if self.get_name() != other.get_name() {
             diff.push_str(&format!(
-                "Name: {:#?} -> {:#?}\n",
+                "Name: {} -> {}\n",
                 self.get_name(),
                 other.get_name()
             ));
         }
-        if self.get_locations() != other.get_locations() {
-            diff.push_str(&format!(
-                "Locations: {:#?} -> {:#?}\n",
-                self.get_locations(),
-                other.get_locations()
-            ));
+        for id in self.get_alternative_ids().iter() {
+            if !other.get_alternative_ids().contains(id) {
+                diff.push_str(&format!("Removed alt ID: {}\n", id));
+            }
+        }
+        for id in other.get_alternative_ids().iter() {
+            if !self.get_alternative_ids().contains(id) {
+                diff.push_str(&format!("Added alt ID: {}\n", id));
+            }
+        }
+        for loc in self.get_locations().iter() {
+            if !other.get_locations().contains(loc) {
+                diff.push_str(&format!("Removed location: ({}, {})\n", loc.0, loc.1));
+            }
+        }
+        for loc in other.get_locations().iter() {
+            if !self.get_locations().contains(loc) {
+                diff.push_str(&format!("Added location: ({}, {})\n", loc.0, loc.1));
+            }
         }
         diff
     }
