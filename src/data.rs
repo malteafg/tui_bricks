@@ -11,18 +11,7 @@ use term_lib::command::Command;
 use crate::error::{Error, Result};
 use crate::io;
 
-#[derive(
-    Serialize,
-    Deserialize,
-    Debug,
-    PartialEq,
-    Eq,
-    Clone,
-    // Copy,
-    EnumIter,
-    Ord,
-    PartialOrd,
-)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, EnumIter, Ord, PartialOrd)]
 pub enum ColorGroup {
     All,
     Basic,
@@ -117,8 +106,8 @@ impl Item {
         self.name = name.to_string();
     }
 
-    pub fn get_color_set(&self) -> BTreeSet<ColorGroup> {
-        self.location.iter().map(|(c, _)| c.clone()).collect()
+    pub fn get_color_set(&self) -> BTreeSet<&ColorGroup> {
+        self.location.iter().map(|(c, _)| c).collect()
     }
 
     pub fn get_other_color_set(&self) -> BTreeSet<String> {
@@ -135,8 +124,8 @@ impl Item {
         self.location.push((color_group, location))
     }
 
-    pub fn remove_color_group(&mut self, color_group: ColorGroup) {
-        self.location.retain(|(c, _)| *c != color_group);
+    pub fn remove_color_group(&mut self, color_group: &ColorGroup) {
+        self.location.retain(|(c, _)| c != color_group);
     }
 
     pub fn add_alt_id(&mut self, id: u32) {
@@ -208,7 +197,7 @@ impl fmt::Display for Item {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
 pub struct RawDatabase {
     items: Vec<Item>,
 }
@@ -227,7 +216,7 @@ impl core::ops::DerefMut for RawDatabase {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize)]
 pub struct Database {
     raw_data: RawDatabase,
     db_path: PathBuf,
@@ -361,7 +350,7 @@ impl Database {
         })
     }
 
-    pub fn get_all_names(&self) -> String {
+    pub fn get_all_names_string(&self) -> String {
         let mut res = String::new();
         for item in self.raw_data.iter() {
             res += item.get_name();
@@ -369,6 +358,7 @@ impl Database {
         }
         res
     }
+
     pub fn get_all_locations(&self) -> BTreeSet<&String> {
         let mut locs = BTreeSet::new();
         for item in self.raw_data.iter() {
@@ -398,7 +388,7 @@ impl Database {
             let mut color_groups = Vec::new();
             for (color_group, o_loc) in item.get_locations() {
                 if o_loc == &loc {
-                    color_groups.push(color_group.clone());
+                    color_groups.push(color_group);
                 }
             }
 
@@ -459,7 +449,7 @@ impl fmt::Display for DatabaseStats {
 pub struct LocSearch<'a> {
     pub id: u32,
     name: &'a str,
-    color_groups: Vec<ColorGroup>,
+    color_groups: Vec<&'a ColorGroup>,
 }
 
 impl fmt::Display for LocSearch<'_> {

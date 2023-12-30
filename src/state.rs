@@ -162,7 +162,7 @@ impl State {
     }
 
     fn search_by_name(&self) -> Result<Mode> {
-        let opts = self.db.get_all_names();
+        let opts = self.db.get_all_names_string();
 
         let searched_name = prompt::fzf_search(&opts)?;
 
@@ -291,27 +291,31 @@ impl State {
             ),
         )?;
 
-        let options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
-        let options: BTreeSet<ColorGroup> = &options - &item.get_color_set();
+        let color_set = item.get_color_set();
+        let options = ColorGroup::iter().filter(|c| !color_set.contains(c));
 
-        let color_group = prompt::select_cmd(
+        let mut color_group = prompt::select_cmd(
             w,
             "Select a color group for which to add a location",
-            options.iter(),
+            options,
         )?;
-        let mut color_group = color_group.clone();
 
         if let ColorGroup::Other(_) = color_group {
             display::clear(w)?;
 
             let create_new = "Create new color group".to_owned();
 
-            let options = self.db.get_other_color_set();
-            let options = options - &item.get_other_color_set();
+            let item_o_color_set = item.get_other_color_set();
+            let options = self
+                .db
+                .get_other_color_set()
+                .iter()
+                .filter(|s| !item_o_color_set.contains(*s));
+
             let color_name = prompt::select_from_list(
                 w,
                 Some("Select other color group or create a new one"),
-                std::iter::once(&create_new).chain(options.iter()),
+                std::iter::once(&create_new).chain(options),
             )?;
 
             if color_name == &create_new {
@@ -320,7 +324,7 @@ impl State {
                     prompt::input_string(w, &format!("Enter the name of the new color group:"))?;
                 color_group = ColorGroup::Other(color_name);
             } else {
-                color_group = ColorGroup::Other(color_name.clone());
+                color_group = ColorGroup::Other(color_name.to_string());
             }
         }
 
@@ -359,16 +363,13 @@ impl State {
             ),
         )?;
 
-        let mut options: BTreeSet<ColorGroup> = ColorGroup::iter().collect();
-        for s in self.db.get_other_color_set() {
-            options.insert(ColorGroup::Other(s.to_string()));
-        }
-        let options: BTreeSet<ColorGroup> = &options & &item.get_color_set();
-
-        let color_group =
-            prompt::select_from_list(w, Some("Select color group to remove:"), options.iter())?;
+        let color_group: &ColorGroup = prompt::select_from_list(
+            w,
+            Some("Select color group to remove:"),
+            item.get_color_set().iter(),
+        )?;
         let mut new_item = item.clone();
-        new_item.remove_color_group(color_group.clone());
+        new_item.remove_color_group(color_group);
 
         Ok(Mode::EditItem {
             item: new_item,
