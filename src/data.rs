@@ -190,10 +190,15 @@ impl fmt::Display for Item {
             res
         };
 
-        let mut loc_string = "Location of each color group:\n".to_owned();
-        for (color_group, loc) in self.location.iter() {
-            loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
-        }
+        let loc_string = if self.location.is_empty() {
+            "This part currently has no location".to_string()
+        } else {
+            let mut loc_string = "Location of each color group:\n".to_owned();
+            for (color_group, loc) in self.location.iter() {
+                loc_string.push_str(&format!("{}: {}\n", color_group.to_string(), loc));
+            }
+            loc_string
+        };
 
         write!(
             f,
