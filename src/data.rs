@@ -102,6 +102,10 @@ impl Item {
         &self.location
     }
 
+    pub fn set_id(&mut self, id: u32) {
+        self.id = id;
+    }
+
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
     }
@@ -292,26 +296,32 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_item(&mut self, item: Item) -> Result<()> {
+    pub fn update_item(&mut self, old_item: &Item, new_item: &Item) -> Result<()> {
+        for c in new_item.get_color_set() {
+            if let ColorGroup::Other(name) = c {
+                self.other_color_groups.insert(name.to_string());
+            }
+        }
+
+        if old_item.get_id() != new_item.get_id() {
+            self.remove_item(old_item.get_id())?;
+            self.add_item(new_item.clone())?;
+            return Ok(());
+        }
+
         if let Some((i, _)) = self
             .raw_data
             .iter()
             .enumerate()
-            .find(|&(_, old_item)| item.get_id() == old_item.get_id())
+            .find(|&(_, item)| item.get_id() == old_item.get_id())
         {
-            for c in item.get_color_set() {
-                if let ColorGroup::Other(name) = c {
-                    self.other_color_groups.insert(name.to_string());
-                }
-            }
-
-            self.raw_data[i] = item;
+            self.raw_data[i] = new_item.clone();
             self.write()?;
 
             Ok(())
         } else {
             Err(Error::PartNotFoundId {
-                part_id: item.get_id(),
+                part_id: old_item.get_id(),
             })
         }
     }

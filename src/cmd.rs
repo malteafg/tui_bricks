@@ -10,9 +10,11 @@ pub enum Cmd {
 
     Quit,
     Edit,
+
     SaveEdit,
     QuitEdit,
     EditName,
+    EditPartID,
 
     MCmd(MultiCmd),
 
@@ -48,9 +50,11 @@ impl Command for Cmd {
 
             Quit => 'q',
             Edit => 'e',
+
             SaveEdit => 's',
             QuitEdit => 'q',
             EditName => 'n',
+            EditPartID => 'i',
 
             MCmd(m_cmd) => m_cmd.get_char(),
 
@@ -79,9 +83,11 @@ impl Command for Cmd {
 
             Quit => "(q)uit the program",
             Edit => "(e)dit the current item",
+
             SaveEdit => "(s)ave the current changes and quit editing",
             QuitEdit => "(q)uit editing this part without saving changes currently made",
             EditName => "edit the (n)ame of this part",
+            EditPartID => "edit the (i)d of this item if a wrong id was written",
 
             MCmd(m_cmd) => m_cmd.get_info(),
 

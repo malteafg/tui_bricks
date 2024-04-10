@@ -95,9 +95,11 @@ impl State {
                 return Err(Error::TermError(term_lib::Error::Quit));
             }
             Edit => self.edit_item(),
+
             QuitEdit => self.quit_edit(w),
             SaveEdit => self.save_edit(),
             EditName => self.edit_name(w),
+            EditPartID => self.edit_part_id(w),
 
             MCmd(m_cmd) => self.handle_multi_cmd(w, m_cmd),
 
@@ -140,7 +142,8 @@ impl State {
         let new_item = Item::new(part_id, name);
         self.db.add_item(new_item.clone())?;
         Ok(Mode::EditItem {
-            item: new_item,
+            old_item: new_item.clone(),
+            new_item,
             msg: None,
         })
     }
@@ -202,31 +205,41 @@ impl State {
             bail!(self, Edit);
         };
         Ok(Mode::EditItem {
-            item: item.clone(),
+            old_item: item.clone(),
+            new_item: item.clone(),
             msg: None,
         })
     }
 
     fn save_edit(&mut self) -> Result<Mode> {
-        let Mode::EditItem { item, msg: _ } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: _,
+        } = &self.mode
+        else {
             bail!(self, SaveEdit);
         };
-        self.db.update_item(item.clone())?;
+        self.db.update_item(old_item, new_item)?;
         Ok(Mode::DisplayItem {
-            item: item.clone(),
+            item: new_item.clone(),
             msg: None,
         })
     }
 
     fn quit_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: _ } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: _,
+        } = &self.mode
+        else {
             bail!(self, QuitEdit);
         };
 
-        let old_item = self.db.get_item_by_id(item.get_id())?;
-        if old_item == item {
+        if old_item == new_item {
             return Ok(Mode::DisplayItem {
-                item: item.clone(),
+                item: old_item.clone(),
                 msg: None,
             });
         }
@@ -234,34 +247,41 @@ impl State {
         display::clear(w)?;
         let changes = format!(
             "Are you sure you want to quit editing and cancel these changes?\n\n{}",
-            old_item.diff(item)
+            old_item.diff(new_item)
         );
 
         if prompt::confirmation(w, &changes)? {
             Ok(Mode::DisplayItem {
-                item: old_item.clone(),
+                item: new_item.clone(),
                 msg: None,
             })
         } else {
             Ok(Mode::EditItem {
-                item: item.clone(),
+                old_item: old_item.clone(),
+                new_item: new_item.clone(),
                 msg: None,
             })
         }
     }
 
     fn edit_name<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: None } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: None,
+        } = &self.mode
+        else {
             bail!(self, EditName);
         };
 
         display::clear(w)?;
-        display::line(w, format!("Editing name of part: {}", item.get_id()))?;
-        let new_name = prompt::edit_string(w, "Enter new name:", item.get_name())?;
+        display::line(w, format!("Editing name of part: {}", new_item.get_id()))?;
+        let new_name = prompt::edit_string(w, "Enter new name:", new_item.get_name())?;
 
         if let Some(existing_id) = self.db.contains_name(&new_name) {
             return Ok(Mode::EditItem {
-                item: item.clone(),
+                old_item: old_item.clone(),
+                new_item: new_item.clone(),
                 msg: Some(format!(
                     "The item with part ID {} already has the name {}",
                     existing_id, new_name,
@@ -269,16 +289,56 @@ impl State {
             });
         }
 
-        let mut new_item = item.clone();
-        new_item.set_name(&new_name);
+        let mut updated_item = new_item.clone();
+        updated_item.set_name(&new_name);
         Ok(Mode::EditItem {
-            item: new_item,
+            old_item: old_item.clone(),
+            new_item: updated_item,
+            msg: Some("Item name succesfully updated.".to_string()),
+        })
+    }
+
+    fn edit_part_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem {
+            old_item,
+            new_item,
             msg: None,
+        } = &self.mode
+        else {
+            bail!(self, EditName);
+        };
+
+        display::clear(w)?;
+        display::line(w, format!("Editing ID of part: {}", new_item.get_id()))?;
+        let new_id = prompt::edit_u32(w, "Enter new ID:", new_item.get_id())?;
+
+        if let Some(main_id) = self.db.contains_id(new_id) {
+            return Ok(Mode::EditItem {
+                old_item: old_item.clone(),
+                new_item: new_item.clone(),
+                msg: Some(format!(
+                    "Item with part ID {} already exists in database under item with part ID {}",
+                    new_id, main_id
+                )),
+            });
+        }
+
+        let mut updated_item = new_item.clone();
+        updated_item.set_id(new_id);
+        Ok(Mode::EditItem {
+            old_item: old_item.clone(),
+            new_item: updated_item,
+            msg: Some("Part ID succesfully updated.".to_string()),
         })
     }
 
     fn add_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: _ } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: _,
+        } = &self.mode
+        else {
             bail!(self, AddColorGroup)
         };
 
@@ -287,11 +347,11 @@ impl State {
             w,
             format!(
                 "Adding a new color group to item with ID: {}",
-                item.get_id()
+                new_item.get_id()
             ),
         )?;
 
-        let color_set = item.get_color_set();
+        let color_set = new_item.get_color_set();
         let options = ColorGroup::iter().filter(|c| !color_set.contains(c));
 
         let mut color_group = prompt::select_cmd(
@@ -305,7 +365,7 @@ impl State {
 
             let create_new = "Create new color group".to_owned();
 
-            let item_o_color_set = item.get_other_color_set();
+            let item_o_color_set = new_item.get_other_color_set();
             let options = self
                 .db
                 .get_other_color_set()
@@ -333,7 +393,7 @@ impl State {
             w,
             format!(
                 "Adding a new color group to item with ID: {}",
-                item.get_id()
+                new_item.get_id()
             ),
         )?;
 
@@ -341,16 +401,22 @@ impl State {
             prompt::input_string(w, &format!("Enter location of group {}:", color_group))?;
         let part_loc = part_loc.to_uppercase();
 
-        let mut new_item = item.clone();
-        new_item.add_color_group(color_group, part_loc);
+        let mut updated_item = new_item.clone();
+        updated_item.add_color_group(color_group, part_loc);
         Ok(Mode::EditItem {
-            item: new_item,
+            old_item: old_item.clone(),
+            new_item: updated_item,
             msg: None,
         })
     }
 
     fn remove_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: None } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: None,
+        } = &self.mode
+        else {
             bail!(self, RemoveColorGroup);
         };
 
@@ -359,26 +425,32 @@ impl State {
             w,
             format!(
                 "Removing a color group from item with ID: {}",
-                item.get_id()
+                new_item.get_id()
             ),
         )?;
 
         let color_group: &ColorGroup = prompt::select_from_list(
             w,
             Some("Select color group to remove:"),
-            item.get_color_set().iter(),
+            new_item.get_color_set().iter(),
         )?;
-        let mut new_item = item.clone();
-        new_item.remove_color_group(color_group);
 
+        let mut updated_item = new_item.clone();
+        updated_item.remove_color_group(color_group);
         Ok(Mode::EditItem {
-            item: new_item,
+            old_item: old_item.clone(),
+            new_item: updated_item,
             msg: None,
         })
     }
 
     fn add_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: _ } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: _,
+        } = &self.mode
+        else {
             bail!(self, AddAltId);
         };
 
@@ -391,62 +463,76 @@ impl State {
                 new_id, main_id
             ));
             return Ok(Mode::EditItem {
-                item: item.clone(),
+                old_item: old_item.clone(),
+                new_item: new_item.clone(),
                 msg,
             });
         }
 
-        let mut new_item = item.clone();
-        new_item.add_alt_id(new_id);
+        let mut updated_item = new_item.clone();
+        updated_item.add_alt_id(new_id);
         Ok(Mode::EditItem {
-            item: new_item,
+            old_item: old_item.clone(),
+            new_item: updated_item,
             msg: None,
         })
     }
 
     fn remove_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: _ } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: _,
+        } = &self.mode
+        else {
             bail!(self, RemoveAltId);
         };
 
         display::clear(w)?;
 
-        let options: BTreeSet<u32> = item.get_alternative_ids().iter().map(|i| *i).collect();
+        let options: BTreeSet<u32> = new_item.get_alternative_ids().iter().map(|i| *i).collect();
         let alt_id = prompt::select_from_list(
             w,
             Some("Which alternative ID do you want to remove?"),
             options.iter(),
         )?;
 
-        let mut new_item = item.clone();
-        new_item.remove_alt_id(*alt_id);
+        let mut updated_item = new_item.clone();
+        updated_item.remove_alt_id(*alt_id);
         Ok(Mode::EditItem {
-            item: new_item,
+            old_item: old_item.clone(),
+            new_item: updated_item,
             msg: None,
         })
     }
 
     fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
-        let Mode::EditItem { item, msg: _ } = &self.mode else {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: _,
+        } = &self.mode
+        else {
             bail!(self, DeleteItem);
         };
 
         display::clear(w)?;
-        display::iter(w, item.to_string().split("\n"))?;
+        display::iter(w, old_item.to_string().split("\n"))?;
 
         let changes = format!(
             "Are you absolutely sure that you want to delete the item with ID: {}?\n",
-            item.get_id(),
+            old_item.get_id(),
         );
 
         if prompt::confirmation(w, &changes)? {
-            self.db.remove_item(item.get_id())?;
+            self.db.remove_item(old_item.get_id())?;
             Ok(Mode::Default {
-                info: Some(format!("Item with ID: {} was deleted.", item.get_id())),
+                info: Some(format!("Item with ID: {} was deleted.", old_item.get_id())),
             })
         } else {
             Ok(Mode::EditItem {
-                item: item.clone(),
+                old_item: old_item.clone(),
+                new_item: new_item.clone(),
                 msg: None,
             })
         }
@@ -463,7 +549,7 @@ impl State {
 
     fn open_bricklink(&self) -> Result<Mode> {
         match &self.mode {
-            Mode::EditItem { item, msg: _ } | Mode::DisplayItem { item, msg: _ } => {
+            Mode::EditItem { new_item: item, .. } | Mode::DisplayItem { item, .. } => {
                 webbrowser::open(&format!(
                     "https://www.bricklink.com/v2/catalog/catalogitem.page?P={}",
                     item.get_id()

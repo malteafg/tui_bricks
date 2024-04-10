@@ -9,10 +9,21 @@ use crate::error::Result;
 
 #[derive(Clone)]
 pub enum Mode {
-    Default { info: Option<String> },
-    DisplayItem { item: Item, msg: Option<String> },
-    EditItem { item: Item, msg: Option<String> },
-    ViewStatistics { stats: DatabaseStats },
+    Default {
+        info: Option<String>,
+    },
+    DisplayItem {
+        item: Item,
+        msg: Option<String>,
+    },
+    EditItem {
+        old_item: Item,
+        new_item: Item,
+        msg: Option<String>,
+    },
+    ViewStatistics {
+        stats: DatabaseStats,
+    },
 }
 
 impl Mode {
@@ -34,6 +45,7 @@ impl Mode {
             EditItem { .. } => CmdList::new(vec![
                 SaveEdit,
                 QuitEdit,
+                EditPartID,
                 EditName,
                 MCmd(MultiCmd::AddToItem),
                 MCmd(MultiCmd::RemoveFromItem),
@@ -62,16 +74,16 @@ impl Mode {
                 }
                 display::iter(w, item.to_string().split("\n"))?;
             }
-            EditItem { item, msg } => {
+            EditItem { new_item, msg, .. } => {
                 if let Some(msg) = msg {
                     display::header(w, msg)?;
                 } else {
                     display::header(
                         w,
-                        &format!("Now editing item with part ID {}", item.get_id()),
+                        &format!("Now editing item with part ID {}", new_item.get_id()),
                     )?;
                 }
-                display::iter(w, item.to_string().split("\n"))?;
+                display::iter(w, new_item.to_string().split("\n"))?;
             }
             ViewStatistics { stats } => {
                 display::iter(w, stats.to_string().split("\n"))?;
