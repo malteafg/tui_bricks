@@ -90,6 +90,10 @@ impl Item {
         self.id
     }
 
+    pub fn is_group(&self) -> bool {
+        self.id >= 1 << 31
+    }
+
     pub fn get_alternative_ids(&self) -> &[u32] {
         &self.alternative_ids
     }
@@ -195,7 +199,7 @@ impl fmt::Display for Item {
         };
 
         let loc_string = if self.location.is_empty() {
-            "This part currently has no location".to_string()
+            "There is currently no location for this item".to_string()
         } else {
             let mut loc_string = "Location of each color group:\n".to_owned();
             for (color_group, loc) in self.location.iter() {
@@ -204,11 +208,20 @@ impl fmt::Display for Item {
             loc_string
         };
 
-        write!(
-            f,
-            "Part ID: {}\nAlternative IDs: {}\n\nName: {}\n\n{}",
-            self.id, altids, name, loc_string,
-        )
+        if self.is_group() {
+            let id = self.id & !(1 << 31);
+            write!(
+                f,
+                "Group ID: {}\nContained part IDs: {}\n\nName: {}\n\n{}",
+                id, altids, name, loc_string,
+            )
+        } else {
+            write!(
+                f,
+                "Part ID: {}\nAlternative IDs: {}\n\nName: {}\n\n{}",
+                self.id, altids, name, loc_string,
+            )
+        }
     }
 }
 
@@ -427,6 +440,17 @@ impl Database {
 
     pub fn get_other_color_set(&self) -> &BTreeSet<String> {
         &self.other_color_groups
+    }
+
+    pub fn get_next_group_id(&self) -> u32 {
+        let mut id = 1 << 31;
+        loop {
+            if self.get_item_by_id(id).is_err() {
+                return id;
+            } else {
+                id += 1;
+            }
+        }
     }
 
     pub fn get_stats(&self) -> DatabaseStats {

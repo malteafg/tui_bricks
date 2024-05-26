@@ -31,27 +31,37 @@ impl Mode {
         use Cmd::*;
         use Mode::*;
         match self {
-            Default { .. } => {
-                CmdList::new(vec![AddItem, MCmd(MultiCmd::SearchItem), Quit, ViewStats])
-            }
+            Default { .. } => CmdList::new(vec![
+                AddItem,
+                AddGroup,
+                MCmd(MultiCmd::SearchItem),
+                Quit,
+                ViewStats,
+            ]),
             DisplayItem { .. } => CmdList::new(vec![
                 AddItem,
+                AddGroup,
                 MCmd(MultiCmd::SearchItem),
                 Quit,
                 Edit,
                 ViewStats,
                 Bricklink,
             ]),
-            EditItem { .. } => CmdList::new(vec![
-                SaveEdit,
-                QuitEdit,
-                EditPartID,
-                EditName,
-                MCmd(MultiCmd::AddToItem),
-                MCmd(MultiCmd::RemoveFromItem),
-                DeleteItem,
-                Bricklink,
-            ]),
+            EditItem { old_item, .. } => {
+                let mut cmds = vec![
+                    SaveEdit,
+                    QuitEdit,
+                    EditName,
+                    MCmd(MultiCmd::AddToItem),
+                    MCmd(MultiCmd::RemoveFromItem),
+                    DeleteItem,
+                    Bricklink,
+                ];
+                if !old_item.is_group() {
+                    cmds.push(EditPartID);
+                }
+                CmdList::new(cmds)
+            }
             ViewStatistics { .. } => CmdList::new(vec![QuitStats]),
         }
     }
@@ -70,7 +80,20 @@ impl Mode {
                 if let Some(msg) = msg {
                     display::header(w, msg)?;
                 } else {
-                    display::header(w, &format!("Viewing item with part ID {}", item.get_id()))?;
+                    if item.is_group() {
+                        display::header(
+                            w,
+                            &format!(
+                                "Viewing item group with group ID {}",
+                                item.get_id() & !(1 << 31)
+                            ),
+                        )?;
+                    } else {
+                        display::header(
+                            w,
+                            &format!("Viewing item with part ID {}", item.get_id()),
+                        )?;
+                    }
                 }
                 display::iter(w, item.to_string().split("\n"))?;
             }
@@ -78,10 +101,20 @@ impl Mode {
                 if let Some(msg) = msg {
                     display::header(w, msg)?;
                 } else {
-                    display::header(
-                        w,
-                        &format!("Now editing item with part ID {}", new_item.get_id()),
-                    )?;
+                    if new_item.is_group() {
+                        display::header(
+                            w,
+                            &format!(
+                                "Now editing item with part ID {}",
+                                new_item.get_id() & !(1 << 31)
+                            ),
+                        )?;
+                    } else {
+                        display::header(
+                            w,
+                            &format!("Now editing item with part ID {}", new_item.get_id()),
+                        )?;
+                    }
                 }
                 display::iter(w, new_item.to_string().split("\n"))?;
             }

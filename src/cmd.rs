@@ -5,6 +5,7 @@ use term_lib::command::{CmdList, Command};
 pub enum Cmd {
     AddItem,
     DeleteItem,
+    AddGroup,
 
     Bricklink,
 
@@ -45,6 +46,7 @@ impl Command for Cmd {
         match &self {
             AddItem => 'a',
             DeleteItem => 'd',
+            AddGroup => 'g',
 
             Bricklink => 'b',
 
@@ -78,6 +80,7 @@ impl Command for Cmd {
         match &self {
             AddItem => "(a)dd a new item to the database",
             DeleteItem => "(d)elete the current item",
+            AddGroup => "add a new (g)roup to the database",
 
             Bricklink => "open in (b)ricklink",
 
@@ -146,7 +149,7 @@ impl MultiCmd {
         match &self {
             SearchItem => "What do you want to search by?",
             AddToItem => "What would you like to add to this item?",
-            RemoveFromItem => "What would you like to remove to this item?",
+            RemoveFromItem => "What would you like to remove from this item?",
         }
     }
 }

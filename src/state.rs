@@ -88,6 +88,7 @@ impl State {
         match cmd {
             AddItem => self.add_item(w),
             DeleteItem => self.delete_item(w),
+            AddGroup => self.add_group(w),
 
             Bricklink => self.open_bricklink(),
 
@@ -138,6 +139,25 @@ impl State {
         display::clear(w)?;
         display::line(w, "Adding a new item to the database")?;
         let name = prompt::input_string(w, &format!("Enter name of new part: {}", part_id))?;
+
+        let new_item = Item::new(part_id, name);
+        self.db.add_item(new_item.clone())?;
+        Ok(Mode::EditItem {
+            old_item: new_item.clone(),
+            new_item,
+            msg: None,
+        })
+    }
+
+    fn add_group<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
+        display::clear(w)?;
+        display::line(w, "Adding a new group to the database")?;
+
+        let part_id = self.db.get_next_group_id();
+
+        display::clear(w)?;
+        display::line(w, "Adding a new group to the database")?;
+        let name = prompt::input_string(w, "Enter name of new group:")?;
 
         let new_item = Item::new(part_id, name);
         self.db.add_item(new_item.clone())?;
