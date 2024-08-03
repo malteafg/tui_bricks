@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use std::io::Write;
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use strum::IntoEnumIterator;
@@ -21,19 +21,24 @@ macro_rules! bail {
     };
 }
 
-pub struct State {
+pub struct State<W: std::io::Write> {
     db: Database,
     mode: Mode,
+    marker: PhantomData<W>,
 }
 
-impl State {
+impl<W: std::io::Write> State<W> {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let db = Database::new(db_path)?;
         let mode = Mode::Default { info: None };
-        Ok(Self { db, mode })
+        Ok(Self {
+            db,
+            mode,
+            marker: PhantomData,
+        })
     }
 
-    pub fn wait_for_cmd<W: std::io::Write>(&mut self, w: &mut W) -> Result<()> {
+    pub fn wait_for_cmd(&mut self, w: &mut W) -> Result<()> {
         self.mode.emit_mode(w)?;
 
         let possible_cmds = self.mode.get_possible_cmds();
@@ -64,7 +69,7 @@ impl State {
         return Ok(());
     }
 
-    fn handle_multi_cmd<W: std::io::Write>(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
+    fn handle_multi_cmd(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
         display::clear(w)?;
         display::line(w, m_cmd.get_header())?;
 
@@ -83,7 +88,7 @@ impl State {
         self.execute_cmd(w, *cmd)
     }
 
-    fn execute_cmd<W: std::io::Write>(&mut self, w: &mut W, cmd: Cmd) -> Result<Mode> {
+    fn execute_cmd(&mut self, w: &mut W, cmd: Cmd) -> Result<Mode> {
         use Cmd::*;
         match cmd {
             AddItem => self.add_item(w),
@@ -120,7 +125,7 @@ impl State {
         }
     }
 
-    fn add_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
+    fn add_item(&mut self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         display::line(w, "Adding a new item to the database")?;
         let part_id = prompt::input_u32(w, "Enter the part ID of the new item")?;
@@ -150,7 +155,7 @@ impl State {
         })
     }
 
-    fn add_group<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
+    fn add_group(&mut self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         display::line(w, "Adding a new group to the database")?;
 
@@ -169,7 +174,7 @@ impl State {
         })
     }
 
-    fn search_by_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn search_by_id(&self, w: &mut W) -> Result<Mode> {
         display::clear(w)?;
         let searched_id = prompt::input_u32(w, "Enter the part ID of the new to search for.")?;
 
@@ -202,7 +207,7 @@ impl State {
         })
     }
 
-    fn search_by_location<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn search_by_location(&self, w: &mut W) -> Result<Mode> {
         let opts = self.db.get_all_locations_string();
         let searched_loc = prompt::fzf_search(&opts)?;
         let locations = self.db.get_items_at_location(&searched_loc);
@@ -248,7 +253,7 @@ impl State {
         })
     }
 
-    fn quit_edit<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn quit_edit(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -285,7 +290,7 @@ impl State {
         }
     }
 
-    fn edit_name<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn edit_name(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -319,7 +324,7 @@ impl State {
         })
     }
 
-    fn edit_part_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn edit_part_id(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -353,7 +358,7 @@ impl State {
         })
     }
 
-    fn move_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn move_color_group(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -399,7 +404,7 @@ impl State {
         })
     }
 
-    fn add_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn add_color_group(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -477,7 +482,7 @@ impl State {
         })
     }
 
-    fn remove_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn remove_color_group(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -511,7 +516,7 @@ impl State {
         })
     }
 
-    fn add_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn add_alt_id(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -545,7 +550,7 @@ impl State {
         })
     }
 
-    fn remove_alt_id<W: Write>(&self, w: &mut W) -> Result<Mode> {
+    fn remove_alt_id(&self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
@@ -573,7 +578,7 @@ impl State {
         })
     }
 
-    fn delete_item<W: Write>(&mut self, w: &mut W) -> Result<Mode> {
+    fn delete_item(&mut self, w: &mut W) -> Result<Mode> {
         let Mode::EditItem {
             old_item,
             new_item,
