@@ -16,6 +16,7 @@ pub enum Cmd {
     QuitEdit,
     EditName,
     EditPartID,
+    MoveColorGroup,
 
     MCmd(MultiCmd),
 
@@ -57,6 +58,7 @@ impl Command for Cmd {
             QuitEdit => 'q',
             EditName => 'n',
             EditPartID => 'i',
+            MoveColorGroup => 'm',
 
             MCmd(m_cmd) => m_cmd.get_char(),
 
@@ -91,6 +93,7 @@ impl Command for Cmd {
             QuitEdit => "(q)uit editing this part without saving changes currently made",
             EditName => "edit the (n)ame of this part",
             EditPartID => "edit the (i)d of this item if a wrong id was written",
+            MoveColorGroup => "(m)ove a location for this item",
 
             MCmd(m_cmd) => m_cmd.get_info(),
 

@@ -101,6 +101,7 @@ impl State {
             SaveEdit => self.save_edit(),
             EditName => self.edit_name(w),
             EditPartID => self.edit_part_id(w),
+            MoveColorGroup => self.move_color_group(w),
 
             MCmd(m_cmd) => self.handle_multi_cmd(w, m_cmd),
 
@@ -349,6 +350,52 @@ impl State {
             old_item: old_item.clone(),
             new_item: updated_item,
             msg: Some("Part ID succesfully updated.".to_string()),
+        })
+    }
+
+    fn move_color_group<W: Write>(&self, w: &mut W) -> Result<Mode> {
+        let Mode::EditItem {
+            old_item,
+            new_item,
+            msg: None,
+        } = &self.mode
+        else {
+            bail!(self, EditName);
+        };
+
+        display::clear(w)?;
+
+        let color_group: &ColorGroup = if new_item.get_locations().len() == 1 {
+            &new_item.get_locations()[0].0
+        } else {
+            prompt::select_from_list(
+                w,
+                Some("Select color group to move:"),
+                new_item.get_color_set().iter(),
+            )?
+        };
+
+        display::clear(w)?;
+        display::line(
+            w,
+            format!(
+                "Moving color group {} from item with ID: {}",
+                color_group,
+                new_item.get_id()
+            ),
+        )?;
+        let part_loc =
+            prompt::input_string(w, &format!("Enter new location of group {}:", color_group))?;
+        let part_loc = part_loc.to_uppercase();
+
+        let mut updated_item = new_item.clone();
+        updated_item.remove_color_group(color_group);
+        updated_item.add_color_group(color_group.clone(), part_loc);
+
+        Ok(Mode::EditItem {
+            old_item: old_item.clone(),
+            new_item: updated_item,
+            msg: None,
         })
     }
 

@@ -47,7 +47,9 @@ impl Mode {
                 ViewStats,
                 Bricklink,
             ]),
-            EditItem { old_item, .. } => {
+            EditItem {
+                old_item, new_item, ..
+            } => {
                 let mut cmds = vec![
                     SaveEdit,
                     QuitEdit,
@@ -59,6 +61,9 @@ impl Mode {
                 ];
                 if !old_item.is_group() {
                     cmds.push(EditPartID);
+                }
+                if new_item.get_locations().len() != 0 {
+                    cmds.push(MoveColorGroup);
                 }
                 CmdList::new(cmds)
             }
