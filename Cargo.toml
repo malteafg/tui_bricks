@@ -11,7 +11,7 @@ term_lib = { path = "../term_lib/" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
 
 webbrowser = "0.8.12"
 
@@ -20,4 +20,4 @@ figment = { version = "0.10.10", features = ["yaml"] }
 
 thiserror = "1.0"
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.11"
