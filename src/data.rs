@@ -438,6 +438,17 @@ impl Database {
         })
     }
 
+    pub fn contains_location(&self, loc: &str) -> bool {
+        for item in self.raw_data.iter() {
+            for (_, o_loc) in item.get_locations() {
+                if o_loc == loc {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     pub fn get_other_color_set(&self) -> &BTreeSet<String> {
         &self.other_color_groups
     }

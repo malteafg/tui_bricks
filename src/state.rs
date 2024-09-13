@@ -61,12 +61,14 @@ impl<W: std::io::Write> State<W> {
 
         let new_mode = self.execute_cmd(w, *cmd);
 
-        if let Err(Error::TermError(term_lib::Error::Escape)) = new_mode {
-            return Ok(());
+        match new_mode {
+            Ok(new_mode) => self.mode = new_mode,
+            Err(Error::TermError(term_lib::Error::Escape)) => {}
+            Err(Error::TermError(term_lib::Error::ParsingError(_))) => {}
+            Err(err) => return Err(err),
         }
 
-        self.mode = new_mode?;
-        return Ok(());
+        Ok(())
     }
 
     fn handle_multi_cmd(&mut self, w: &mut W, m_cmd: MultiCmd) -> Result<Mode> {
@@ -194,6 +196,9 @@ impl<W: std::io::Write> State<W> {
         let opts = self.db.get_all_names_string();
 
         let searched_name = prompt::fzf_search(&opts)?;
+        if searched_name.is_empty() {
+            return Ok(self.mode.clone());
+        }
 
         if let Ok(item) = self.db.get_item_by_name(&searched_name) {
             return Ok(Mode::DisplayItem {
@@ -210,6 +215,10 @@ impl<W: std::io::Write> State<W> {
     fn search_by_location(&self, w: &mut W) -> Result<Mode> {
         let opts = self.db.get_all_locations_string();
         let searched_loc = prompt::fzf_search(&opts)?;
+        if !self.db.contains_location(&searched_loc) {
+            return Ok(self.mode.clone());
+        }
+
         let locations = self.db.get_items_at_location(&searched_loc);
 
         display::clear(w)?;
