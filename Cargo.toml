@@ -1,6 +1,7 @@
 [workspace]
 members = [
 "tui_bricks",
+"database",
 ]
 default-members = [
 "tui_bricks",

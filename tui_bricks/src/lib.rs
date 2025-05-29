@@ -14,8 +14,8 @@ mod config;
 fn get_user_db_path() -> error::Result<std::path::PathBuf> {
     use config::Config;
     use figment::{
-        providers::{Format, Serialized, Yaml},
         Figment,
+        providers::{Format, Serialized, Yaml},
     };
 
     let mut config_path = io::get_config_dir();

@@ -1,0 +1,5 @@
+id,name,rgb,is_trans,num_parts,num_sets,y1,y2
+-1,[Unknown],0033B2,False,20,5,2000,2012
+0,Black,05131D,False,743108,206042,1957,2025
+1,Blue,0055BF,False,193056,46595,1949,2025
+2,Green,237841,False,80003,23895,1949,2025
