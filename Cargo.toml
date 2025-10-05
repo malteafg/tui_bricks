@@ -1,10 +1,14 @@
 [workspace]
 members = [
-"tui_bricks",
-"database",
+  "tui_bricks",
+  "database",
+  "tui_cli",
 ]
 default-members = [
-"tui_bricks",
+  "tui_bricks",
 ]
 
 resolver="2"
+
+[workspace.dependencies]
+database = { path = "database" }

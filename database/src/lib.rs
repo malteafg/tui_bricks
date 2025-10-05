@@ -9,7 +9,7 @@ use serde::{
 
 use csv::Reader;
 
-use derive_more::{Deref, From};
+use derive_more::{Deref, Display, From};
 
 fn get_csv_reader<P: AsRef<Path>>(path: P) -> Result<Reader<File>, std::io::Error> {
     let file = File::open(path)?;
@@ -31,15 +31,15 @@ where
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
 #[serde(transparent)]
 pub struct PartNum(String);
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
 #[serde(transparent)]
 pub struct ElementId(usize);
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
 #[serde(transparent)]
 pub struct ColorId(isize);
 
@@ -53,6 +53,8 @@ pub trait DatabaseI {
     fn color_from_name(&self, name: &str) -> Option<&ColorRecord>;
 
     fn element(&self, id: &ElementId) -> Option<&ElementRecord>;
+
+    fn iter_part_num(&self) -> impl Iterator<Item = &PartNum>;
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -181,6 +183,10 @@ impl DatabaseI for Database {
 
     fn element(&self, id: &ElementId) -> Option<&ElementRecord> {
         self.elements.get(id)
+    }
+
+    fn iter_part_num(&self) -> impl Iterator<Item = &PartNum> {
+        self.parts.keys()
     }
 }
 
