@@ -20,18 +20,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("datbase loaded");
 
     // Step 2: Spawn fzf
+    // Just watch and read the test file to observe a change to fzf focus
     let mut child = Command::new("fzf")
+        .arg("--bind=focus:execute-silent(echo {} > test_file.txt)")
+        // .arg("--bind=focus:execute(echo {})")
+        // .arg("cp ../raw_data/parts_red/{1}.png ../raw_data/test_image.png") // sxiv will display the image from the selected key
+        // .arg("--preview-window=up:30%:wrap") // Optional: Makes the preview window appear above the fzf window
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
 
-    // {
-    //     // Step 3: Write keys to fzf stdin
-    //     let stdin = child.stdin.as_mut().ok_or("Failed to open stdin")?;
-    //     for key in database.iter_part_num() {
-    //         writeln!(stdin, "{}", key)?;
-    //     }
-    // }
     {
         let stdin = child.stdin.as_mut().ok_or("Failed to open stdin")?;
 
@@ -40,7 +38,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             match writeln!(stdin, "{}", key) {
                 Ok(_) => {
                     stdin.flush()?; // Optional but helps
-                    std::thread::sleep(std::time::Duration::from_millis(1));
                 }
                 Err(e) if e.kind() == ErrorKind::BrokenPipe => {
                     // fzf exited early — stop writing
