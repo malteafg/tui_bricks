@@ -3,6 +3,8 @@ members = [
   "tui_bricks",
   "database",
   "tui_cli",
+  "small_cli",
+  "small_dat",
 ]
 default-members = [
   "tui_bricks",

@@ -51,6 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Step 4: Read selected key from fzf stdout
     let output = child.wait_with_output()?;
+    dbg!(&output.stdout);
     let selected_key: PartNum = String::from_utf8_lossy(&output.stdout)
         .trim()
         .to_string()
