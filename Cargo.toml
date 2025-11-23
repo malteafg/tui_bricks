@@ -20,3 +20,4 @@ tui_bricks_update_image = { path = "cli_tools/tui_bricks_update_image" }
 utils = { path = "libs/utils" }
 
 clap = { version = "4.5.*", features = ["derive"] }
+directories-next = "2.0.*"

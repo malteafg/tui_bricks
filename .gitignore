@@ -3,3 +3,5 @@ Cargo.lock
 test_db.yml
 /raw_data
 /cache
+/data
+/config

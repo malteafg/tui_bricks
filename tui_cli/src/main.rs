@@ -1,4 +1,5 @@
 use database::{Database, DatabaseI, PartNum};
+use utils;
 
 use std::error::Error;
 use std::io::{ErrorKind, Write};
@@ -19,13 +20,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("datbase loaded");
 
-    // Step 2: Spawn fzf
-    // Just watch and read the test file to observe a change to fzf focus
-    let mut child = Command::new("fzf")
-        .arg("--bind=focus:execute(sh -c '[ -f ../raw_data/parts_red/{}.png ] && cp ../raw_data/parts_red/{}.png ../raw_data/test_image.png' sh {})")
-        .arg("--preview=(echo {})")
+    let dst_path = utils::cache_dir().join("displayed_image.png");
+    let images_path = utils::data_dir().join("part_images");
+    let update_image_cmd = format!(
+        "tui_bricks_update_image {{}} --dst-path=\"{}\" --images-path=\"{}\"",
+        dst_path.display(),
+        images_path.display()
+    );
 
-        .arg("--preview-window=up:30%:wrap") // Optional: Makes the preview window appear above the fzf window
+    let mut child = Command::new("fzf")
+        // .arg("--bind=focus:execute(sh -c '[ -f ../raw_data/parts_red/{}.png ] && cp ../raw_data/parts_red/{}.png ../raw_data/test_image.png' sh {})")
+        // .arg(&format!(
+        //     "--bind=focus:execute({} &>/dev/null &)",
+        //     update_image_cmd
+        // ))
+        // .arg("--preview=(echo {})")
+        .arg(&format!("--preview=({} && echo {{}})", update_image_cmd))
+        .arg("--preview-window=up:30%:wrap")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
@@ -51,7 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Step 4: Read selected key from fzf stdout
     let output = child.wait_with_output()?;
-    dbg!(String::from_utf8_lossy(&output.stdout));
+    // dbg!(String::from_utf8_lossy(&output.stdout));
     let selected_key: PartNum = String::from_utf8_lossy(&output.stdout)
         .trim()
         .to_string()
