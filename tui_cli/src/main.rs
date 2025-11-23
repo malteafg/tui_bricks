@@ -22,10 +22,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Step 2: Spawn fzf
     // Just watch and read the test file to observe a change to fzf focus
     let mut child = Command::new("fzf")
-        .arg("--bind=focus:execute-silent(echo {} > test_file.txt)")
-        // .arg("--bind=focus:execute(echo {})")
-        // .arg("cp ../raw_data/parts_red/{1}.png ../raw_data/test_image.png") // sxiv will display the image from the selected key
-        // .arg("--preview-window=up:30%:wrap") // Optional: Makes the preview window appear above the fzf window
+        .arg("--bind=focus:execute(sh -c '[ -f ../raw_data/parts_red/{}.png ] && cp ../raw_data/parts_red/{}.png ../raw_data/test_image.png' sh {})")
+        .arg("--preview=(echo {})")
+
+        .arg("--preview-window=up:30%:wrap") // Optional: Makes the preview window appear above the fzf window
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Step 4: Read selected key from fzf stdout
     let output = child.wait_with_output()?;
-    dbg!(&output.stdout);
+    dbg!(String::from_utf8_lossy(&output.stdout));
     let selected_key: PartNum = String::from_utf8_lossy(&output.stdout)
         .trim()
         .to_string()

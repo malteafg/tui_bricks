@@ -1,0 +1,9 @@
+[package]
+name = "tui_bricks_update_image"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+utils = { workspace = true }
+
+clap = { workspace = true }
