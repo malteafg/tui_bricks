@@ -3,22 +3,20 @@ use utils;
 
 use std::error::Error;
 use std::io::{ErrorKind, Write};
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut parts_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    parts_path.push("../raw_data/parts.csv");
+    let mut parts_path = utils::data_dir();
+    parts_path.push("parts.csv");
+    dbg!(&parts_path.display());
 
-    let mut colors_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    colors_path.push("../raw_data/colors.csv");
+    let mut colors_path = utils::data_dir();
+    colors_path.push("colors.csv");
 
-    let mut elements_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    elements_path.push("../raw_data/elements.csv");
+    let mut elements_path = utils::data_dir();
+    elements_path.push("elements.csv");
 
     let database = Database::new(&parts_path, &colors_path, &elements_path);
-
-    println!("datbase loaded");
 
     let dst_path = utils::cache_dir().join("displayed_image.png");
     let images_path = utils::data_dir().join("part_images");

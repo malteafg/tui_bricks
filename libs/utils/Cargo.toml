@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 directories-next = { workspace = true }
+serde = { workspace = true }
+paste = "1.0.*"

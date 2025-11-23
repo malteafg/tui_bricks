@@ -1,3 +1,5 @@
+use utils::strong_type::Strong;
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
@@ -31,13 +33,11 @@ where
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
-#[serde(transparent)]
-pub struct PartNum(String);
+// pub struct PartNumTag;
+// pub type PartNum = Strong<String, PartNumTag>;
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
-#[serde(transparent)]
-pub struct ElementId(usize);
+utils::strong_type!(PartNum, String);
+utils::strong_type!(ElementId, usize);
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
 #[serde(transparent)]
@@ -195,6 +195,7 @@ mod tests {
     use super::*;
     use rstest::{fixture, rstest};
     use std::path::PathBuf;
+    use utils;
 
     #[fixture]
     fn database() -> Database {
@@ -214,14 +215,14 @@ mod tests {
     fn test_parts(database: Database) {
         assert_eq!(database.parts.len(), 3);
 
-        let part = &database.parts.get(&PartNum("3021".to_string())).unwrap();
+        let part = &database.parts.get(&"3021".into()).unwrap();
         assert_eq!(*part.part_record.part_num, "3021");
         assert_eq!(part.part_record.name, "Plate 2 x 3");
         assert_eq!(part.part_record.part_cat_id, "14");
         assert_eq!(part.part_record.part_material, "Plastic");
         assert_eq!(part.element_ids.len(), 3);
 
-        let part = &database.parts.get(&PartNum("3794b".to_string())).unwrap();
+        let part = &database.parts.get(&"3794b".into()).unwrap();
         assert_eq!(*part.part_record.part_num, "3794b");
         assert_eq!(
             part.part_record.name,
@@ -231,7 +232,7 @@ mod tests {
         assert_eq!(part.part_record.part_material, "Plastic");
         assert_eq!(part.element_ids.len(), 3);
 
-        let part = &database.parts.get(&PartNum("4070".to_string())).unwrap();
+        let part = &database.parts.get(&"4070".into()).unwrap();
         assert_eq!(*part.part_record.part_num, "4070");
         assert_eq!(part.part_record.name, "Brick Special 1 x 1 with Headlight");
         assert_eq!(part.part_record.part_cat_id, "5");
@@ -292,20 +293,20 @@ mod tests {
 
     #[test]
     fn dump() {
-        let mut parts_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        parts_path.push("../raw_data/parts.csv");
+        let mut parts_path = utils::data_dir();
+        parts_path.push("parts.csv");
 
-        let mut colors_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        colors_path.push("../raw_data/colors.csv");
+        let mut colors_path = utils::data_dir();
+        colors_path.push("colors.csv");
 
-        let mut elements_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        elements_path.push("../raw_data/elements.csv");
+        let mut elements_path = utils::data_dir();
+        elements_path.push("elements.csv");
 
         let database = Database::new(&parts_path, &colors_path, &elements_path);
 
         dbg!(&database.color_from_id(&3.into()));
 
-        let part = database.part_from_num(&"4070".to_string().into()).unwrap();
+        let part = database.part_from_num(&"4070".into()).unwrap();
         dbg!(&part);
         let mut colors = Vec::new();
         for id in &part.element_ids {

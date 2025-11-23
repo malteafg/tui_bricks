@@ -1,11 +1,9 @@
 [workspace]
 members = [
   "tui_bricks",
-  "database",
   "tui_cli",
-  "small_cli",
-  "small_dat",
   "cli_tools/tui_bricks_update_image",
+  "libs/database",
   "libs/utils",
 ]
 default-members = [
@@ -15,9 +13,10 @@ default-members = [
 resolver="2"
 
 [workspace.dependencies]
-database = { path = "database" }
+database = { path = "libs/database" }
 tui_bricks_update_image = { path = "cli_tools/tui_bricks_update_image" }
 utils = { path = "libs/utils" }
 
 clap = { version = "4.5.*", features = ["derive"] }
 directories-next = "2.0.*"
+serde = { version = "1.0", features = ["derive"] }

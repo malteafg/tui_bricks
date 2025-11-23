@@ -8,6 +8,7 @@ use std::path::PathBuf;
 static NO_IMAGE: &[u8] = include_bytes!("../assets/no_image.png");
 
 // TODO: use the database so we can also copy images based on name of the part.
+// TODO have argument to specify path to images, such that we can enter a tui logo.
 #[derive(Parser, Debug)]
 pub struct Args {
     /// The id of the part whose image is to be updated.
