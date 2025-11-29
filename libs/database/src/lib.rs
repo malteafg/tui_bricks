@@ -9,9 +9,9 @@ use serde::{
     de::{Error, Unexpected},
 };
 
-use csv::Reader;
+use bincode::{Decode, Encode};
 
-use derive_more::{Deref, Display, From};
+use csv::Reader;
 
 fn get_csv_reader<P: AsRef<Path>>(path: P) -> Result<Reader<File>, std::io::Error> {
     let file = File::open(path)?;
@@ -33,18 +33,37 @@ where
     }
 }
 
-// pub struct PartNumTag;
-// pub type PartNum = Strong<String, PartNumTag>;
-
-utils::strong_type!(PartNum, String);
+utils::strong_type!(PartId, String);
 utils::strong_type!(ElementId, usize);
+utils::strong_type!(ColorId, isize);
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, From, Deref, Display)]
-#[serde(transparent)]
-pub struct ColorId(isize);
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+pub enum GetItemQuery {
+    PartFromId(PartId),
+    PartFromName(String),
+    ColorFromId(ColorId),
+    ColorFromName(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+pub enum Query {
+    GetItem(GetItemQuery),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+pub enum GetItemResponse {
+    Part(Part),
+    Color(ColorRecord),
+    NotFound,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+pub enum Response {
+    GetItem(GetItemResponse, GetItemQuery),
+}
 
 pub trait DatabaseI {
-    fn part_from_num(&self, num: &PartNum) -> Option<&Part>;
+    fn part_from_id(&self, id: &PartId) -> Option<&Part>;
 
     fn part_from_name(&self, name: &str) -> Option<&Part>;
 
@@ -54,24 +73,24 @@ pub trait DatabaseI {
 
     fn element(&self, id: &ElementId) -> Option<&ElementRecord>;
 
-    fn iter_part_num(&self) -> impl Iterator<Item = &PartNum>;
+    fn iter_part_id(&self) -> impl Iterator<Item = &PartId>;
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct PartRecord {
-    part_num: PartNum,
+    part_id: PartId,
     name: String,
     part_cat_id: String,
     part_material: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct Part {
     part_record: PartRecord,
     element_ids: Vec<ElementId>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct ColorRecord {
     id: ColorId,
     name: String,
@@ -84,37 +103,37 @@ pub struct ColorRecord {
     y2: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct ElementRecord {
     element_id: ElementId,
-    part_num: PartNum,
+    part_id: PartId,
     color_id: ColorId,
     design_id: Option<usize>,
 }
 
 pub struct Database {
-    parts: HashMap<PartNum, Part>,
+    parts: HashMap<PartId, Part>,
     colors: HashMap<ColorId, ColorRecord>,
     elements: HashMap<ElementId, ElementRecord>,
 
-    name_to_part_num: HashMap<String, PartNum>,
+    name_to_part_id: HashMap<String, PartId>,
     name_to_color_id: HashMap<String, ColorId>,
 }
 
 impl Database {
     pub fn new<P: AsRef<Path>>(parts_path: P, colors_path: P, elements_path: P) -> Self {
         let mut parts = HashMap::new();
-        let mut name_to_part_num = HashMap::new();
+        let mut name_to_part_id = HashMap::new();
         for rec in get_csv_reader(parts_path).unwrap().deserialize() {
             let rec: PartRecord = rec.unwrap();
 
-            if parts.contains_key(&rec.part_num) && name_to_part_num.contains_key(&rec.name) {
+            if parts.contains_key(&rec.part_id) && name_to_part_id.contains_key(&rec.name) {
                 panic!("Duplicate element {:?}", rec);
             }
 
-            name_to_part_num.insert(rec.name.clone(), rec.part_num.clone());
+            name_to_part_id.insert(rec.name.clone(), rec.part_id.clone());
             parts.insert(
-                rec.part_num.clone(),
+                rec.part_id.clone(),
                 Part {
                     part_record: rec,
                     element_ids: Vec::new(),
@@ -144,7 +163,7 @@ impl Database {
             }
 
             parts
-                .get_mut(&rec.part_num)
+                .get_mut(&rec.part_id)
                 .unwrap()
                 .element_ids
                 .push(rec.element_id);
@@ -156,20 +175,20 @@ impl Database {
             parts,
             colors,
             elements,
-            name_to_part_num,
+            name_to_part_id,
             name_to_color_id,
         }
     }
 }
 
 impl DatabaseI for Database {
-    fn part_from_num(&self, num: &PartNum) -> Option<&Part> {
-        self.parts.get(num)
+    fn part_from_id(&self, id: &PartId) -> Option<&Part> {
+        self.parts.get(id)
     }
 
     fn part_from_name(&self, name: &str) -> Option<&Part> {
-        let part_num = self.name_to_part_num.get(name)?;
-        self.parts.get(part_num)
+        let part_id = self.name_to_part_id.get(name)?;
+        self.parts.get(part_id)
     }
 
     fn color_from_id(&self, id: &ColorId) -> Option<&ColorRecord> {
@@ -185,7 +204,7 @@ impl DatabaseI for Database {
         self.elements.get(id)
     }
 
-    fn iter_part_num(&self) -> impl Iterator<Item = &PartNum> {
+    fn iter_part_id(&self) -> impl Iterator<Item = &PartId> {
         self.parts.keys()
     }
 }
@@ -216,14 +235,14 @@ mod tests {
         assert_eq!(database.parts.len(), 3);
 
         let part = &database.parts.get(&"3021".into()).unwrap();
-        assert_eq!(*part.part_record.part_num, "3021");
+        assert_eq!(*part.part_record.part_id, "3021");
         assert_eq!(part.part_record.name, "Plate 2 x 3");
         assert_eq!(part.part_record.part_cat_id, "14");
         assert_eq!(part.part_record.part_material, "Plastic");
         assert_eq!(part.element_ids.len(), 3);
 
         let part = &database.parts.get(&"3794b".into()).unwrap();
-        assert_eq!(*part.part_record.part_num, "3794b");
+        assert_eq!(*part.part_record.part_id, "3794b");
         assert_eq!(
             part.part_record.name,
             "Plate Special 1 x 2 with 1 Stud with Groove (Jumper)"
@@ -233,7 +252,7 @@ mod tests {
         assert_eq!(part.element_ids.len(), 3);
 
         let part = &database.parts.get(&"4070".into()).unwrap();
-        assert_eq!(*part.part_record.part_num, "4070");
+        assert_eq!(*part.part_record.part_id, "4070");
         assert_eq!(part.part_record.name, "Brick Special 1 x 1 with Headlight");
         assert_eq!(part.part_record.part_cat_id, "5");
         assert_eq!(part.part_record.part_material, "Plastic");
@@ -271,22 +290,22 @@ mod tests {
 
         let element = &database.elements.get(&302123.into()).unwrap();
         assert_eq!(*element.element_id, 302123);
-        assert_eq!(*element.part_num, "3021");
+        assert_eq!(*element.part_id, "3021");
         assert_eq!(*element.color_id, 1);
         assert_eq!(element.design_id, Some(3021));
 
         let element = &database.elements.get(&407028.into()).unwrap();
         assert_eq!(*element.element_id, 407028);
-        assert_eq!(*element.part_num, "4070");
+        assert_eq!(*element.part_id, "4070");
         assert_eq!(*element.color_id, 2);
         assert_eq!(element.design_id, None);
     }
 
     #[rstest]
-    fn name_to_part_num(database: Database) {
-        assert_eq!(database.parts.len(), database.name_to_part_num.len());
+    fn name_to_part_id(database: Database) {
+        assert_eq!(database.parts.len(), database.name_to_part_id.len());
         assert_eq!(
-            **database.name_to_part_num.get("Plate 2 x 3").unwrap(),
+            **database.name_to_part_id.get("Plate 2 x 3").unwrap(),
             "3021"
         );
     }
@@ -306,7 +325,7 @@ mod tests {
 
         dbg!(&database.color_from_id(&3.into()));
 
-        let part = database.part_from_num(&"4070".into()).unwrap();
+        let part = database.part_from_id(&"4070".into()).unwrap();
         dbg!(&part);
         let mut colors = Vec::new();
         for id in &part.element_ids {

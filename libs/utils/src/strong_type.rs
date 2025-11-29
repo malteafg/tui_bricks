@@ -1,10 +1,11 @@
+pub use bincode::{Decode, Encode};
 pub use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Decode, Encode)]
 #[serde(transparent)]
 pub struct Strong<T, Tag> {
     internal: T,
@@ -111,6 +112,7 @@ impl<T, Tag> std::convert::AsMut<T> for Strong<T, Tag> {
 macro_rules! strong_type {
     ($name:ident, $inner:ty) => {
         $crate::strong_type::paste! {
+            #[derive(Encode, Decode)]
             pub struct [<$name Tag>];
             pub type $name = Strong<$inner, [<$name Tag>]>;
         }

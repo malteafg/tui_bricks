@@ -1,4 +1,4 @@
-use database::{Database, DatabaseI, PartNum};
+use database::{Database, DatabaseI, PartId};
 use utils;
 
 use std::error::Error;
@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     {
         let stdin = child.stdin.as_mut().ok_or("Failed to open stdin")?;
 
-        for key in database.iter_part_num() {
+        for key in database.iter_part_id() {
             // Attempt to write key
             match writeln!(stdin, "{}", key) {
                 Ok(_) => {
@@ -61,13 +61,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Step 4: Read selected key from fzf stdout
     let output = child.wait_with_output()?;
     // dbg!(String::from_utf8_lossy(&output.stdout));
-    let selected_key: PartNum = String::from_utf8_lossy(&output.stdout)
+    let selected_key: PartId = String::from_utf8_lossy(&output.stdout)
         .trim()
         .to_string()
         .into();
 
     // Step 5: Use selected key
-    if let Some(value) = database.part_from_num(&selected_key) {
+    if let Some(value) = database.part_from_id(&selected_key) {
         println!("You selected: {} => {:?}", selected_key, value);
     } else {
         println!("Key not found: {}", selected_key);
