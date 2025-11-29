@@ -1,11 +1,11 @@
-pub use bincode::{Decode, Encode};
+pub use bincode::{BorrowDecode, Decode, Encode};
 pub use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 
-#[derive(Deserialize, Serialize, Decode, Encode)]
+#[derive(Deserialize, Serialize, Encode, Decode)]
 #[serde(transparent)]
 pub struct Strong<T, Tag> {
     internal: T,

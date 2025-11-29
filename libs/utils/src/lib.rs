@@ -1,4 +1,7 @@
 pub mod strong_type;
+mod tcp_ext;
+
+pub use tcp_ext::TcpExt;
 
 #[cfg(not(debug_assertions))]
 use directories_next::ProjectDirs;

@@ -1,34 +1,12 @@
-use database::{Database, DatabaseI, GetItemQuery, GetItemResponse, Query, Response};
-use utils;
+use database::rebrickable_server::{GetItemQuery, GetItemResponse, Query, Response};
+use database::{LocalDB, RebrickableDB};
+use utils::TcpExt;
 
-use bincode;
-
-use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 
-fn handle_client(mut stream: TcpStream, database: &Database) {
+fn handle_client<'a, D: RebrickableDB<'a>>(mut stream: TcpStream, database: &'a D) {
     loop {
-        let mut len_buf = [0u8; 4];
-        if stream.read_exact(&mut len_buf).is_err() {
-            eprintln!("Connection closed before reading length");
-            return;
-        }
-        let msg_len = u32::from_le_bytes(len_buf) as usize;
-
-        let mut buf = vec![0u8; msg_len];
-        if stream.read_exact(&mut buf).is_err() {
-            eprintln!("Failed to read message");
-            return;
-        }
-
-        let (query, _): (Query, usize) =
-            match bincode::decode_from_slice(&buf, bincode::config::standard()) {
-                Ok(q) => q,
-                Err(e) => {
-                    eprintln!("bad query: {e}");
-                    return;
-                }
-            };
+        let query: Query = stream.receive();
 
         println!("Received query: {:?}", query);
 
@@ -36,31 +14,32 @@ fn handle_client(mut stream: TcpStream, database: &Database) {
             Query::GetItem(query) => {
                 let response = match &query {
                     GetItemQuery::PartFromId(id) => match database.part_from_id(&id) {
-                        Some(part) => GetItemResponse::Part(part.clone()),
+                        Some(part) => GetItemResponse::Part(part.into_owned()),
                         None => GetItemResponse::NotFound,
                     },
                     GetItemQuery::PartFromName(name) => match database.part_from_name(&name) {
-                        Some(part) => GetItemResponse::Part(part.clone()),
+                        Some(part) => GetItemResponse::Part(part.into_owned()),
                         None => GetItemResponse::NotFound,
                     },
                     GetItemQuery::ColorFromId(id) => match database.color_from_id(&id) {
-                        Some(color) => GetItemResponse::Color(color.clone()),
+                        Some(color) => GetItemResponse::Color(color.into_owned()),
                         None => GetItemResponse::NotFound,
                     },
                     GetItemQuery::ColorFromName(name) => match database.color_from_name(&name) {
-                        Some(color) => GetItemResponse::Color(color.clone()),
+                        Some(color) => GetItemResponse::Color(color.into_owned()),
+                        None => GetItemResponse::NotFound,
+                    },
+                    GetItemQuery::ElementFromId(id) => match database.element_from_id(&id) {
+                        Some(element) => GetItemResponse::Element(element.into_owned()),
                         None => GetItemResponse::NotFound,
                     },
                 };
                 Response::GetItem(response, query)
             }
+            Query::IterItems(_) => unimplemented!(),
         };
 
-        let data = bincode::encode_to_vec(&response, bincode::config::standard()).unwrap();
-        let len = (data.len() as u32).to_le_bytes();
-
-        let _ = stream.write_all(&len);
-        let _ = stream.write_all(&data);
+        stream.send(response);
     }
 }
 
@@ -70,7 +49,6 @@ fn main() -> std::io::Result<()> {
 
     let mut parts_path = utils::data_dir();
     parts_path.push("parts.csv");
-    dbg!(&parts_path.display());
 
     let mut colors_path = utils::data_dir();
     colors_path.push("colors.csv");
@@ -78,7 +56,7 @@ fn main() -> std::io::Result<()> {
     let mut elements_path = utils::data_dir();
     elements_path.push("elements.csv");
 
-    let database = Database::new(&parts_path, &colors_path, &elements_path);
+    let database = LocalDB::new(&parts_path, &colors_path, &elements_path);
 
     loop {
         let (stream, addr) = listener.accept()?;

@@ -1,4 +1,4 @@
-use database::{Database, DatabaseI, PartId};
+use database::{LocalDB, PartId, RebrickableDB};
 use utils;
 
 use std::error::Error;
@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut elements_path = utils::data_dir();
     elements_path.push("elements.csv");
 
-    let database = Database::new(&parts_path, &colors_path, &elements_path);
+    let database = LocalDB::new(&parts_path, &colors_path, &elements_path);
 
     let dst_path = utils::cache_dir().join("displayed_image.png");
     let images_path = utils::data_dir().join("part_images");
