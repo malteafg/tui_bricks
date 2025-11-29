@@ -6,6 +6,7 @@ members = [
   "libs/database",
   "libs/utils",
   "cli_tools/tui_bricks_database_server",
+  "cli_tools/tui_bricks_database_client",
 ]
 default-members = [
   "tui_bricks",

@@ -78,7 +78,7 @@ pub trait DatabaseI {
 
 #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct PartRecord {
-    part_id: PartId,
+    part_num: PartId,
     name: String,
     part_cat_id: String,
     part_material: String,
@@ -106,7 +106,7 @@ pub struct ColorRecord {
 #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct ElementRecord {
     element_id: ElementId,
-    part_id: PartId,
+    part_num: PartId,
     color_id: ColorId,
     design_id: Option<usize>,
 }
@@ -127,13 +127,13 @@ impl Database {
         for rec in get_csv_reader(parts_path).unwrap().deserialize() {
             let rec: PartRecord = rec.unwrap();
 
-            if parts.contains_key(&rec.part_id) && name_to_part_id.contains_key(&rec.name) {
+            if parts.contains_key(&rec.part_num) && name_to_part_id.contains_key(&rec.name) {
                 panic!("Duplicate element {:?}", rec);
             }
 
-            name_to_part_id.insert(rec.name.clone(), rec.part_id.clone());
+            name_to_part_id.insert(rec.name.clone(), rec.part_num.clone());
             parts.insert(
-                rec.part_id.clone(),
+                rec.part_num.clone(),
                 Part {
                     part_record: rec,
                     element_ids: Vec::new(),
@@ -163,7 +163,7 @@ impl Database {
             }
 
             parts
-                .get_mut(&rec.part_id)
+                .get_mut(&rec.part_num)
                 .unwrap()
                 .element_ids
                 .push(rec.element_id);
@@ -235,14 +235,14 @@ mod tests {
         assert_eq!(database.parts.len(), 3);
 
         let part = &database.parts.get(&"3021".into()).unwrap();
-        assert_eq!(*part.part_record.part_id, "3021");
+        assert_eq!(*part.part_record.part_num, "3021");
         assert_eq!(part.part_record.name, "Plate 2 x 3");
         assert_eq!(part.part_record.part_cat_id, "14");
         assert_eq!(part.part_record.part_material, "Plastic");
         assert_eq!(part.element_ids.len(), 3);
 
         let part = &database.parts.get(&"3794b".into()).unwrap();
-        assert_eq!(*part.part_record.part_id, "3794b");
+        assert_eq!(*part.part_record.part_num, "3794b");
         assert_eq!(
             part.part_record.name,
             "Plate Special 1 x 2 with 1 Stud with Groove (Jumper)"
@@ -252,7 +252,7 @@ mod tests {
         assert_eq!(part.element_ids.len(), 3);
 
         let part = &database.parts.get(&"4070".into()).unwrap();
-        assert_eq!(*part.part_record.part_id, "4070");
+        assert_eq!(*part.part_record.part_num, "4070");
         assert_eq!(part.part_record.name, "Brick Special 1 x 1 with Headlight");
         assert_eq!(part.part_record.part_cat_id, "5");
         assert_eq!(part.part_record.part_material, "Plastic");
@@ -290,13 +290,13 @@ mod tests {
 
         let element = &database.elements.get(&302123.into()).unwrap();
         assert_eq!(*element.element_id, 302123);
-        assert_eq!(*element.part_id, "3021");
+        assert_eq!(*element.part_num, "3021");
         assert_eq!(*element.color_id, 1);
         assert_eq!(element.design_id, Some(3021));
 
         let element = &database.elements.get(&407028.into()).unwrap();
         assert_eq!(*element.element_id, 407028);
-        assert_eq!(*element.part_id, "4070");
+        assert_eq!(*element.part_num, "4070");
         assert_eq!(*element.color_id, 2);
         assert_eq!(element.design_id, None);
     }
