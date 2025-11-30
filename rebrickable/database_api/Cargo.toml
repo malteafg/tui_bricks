@@ -1,11 +1,10 @@
 [package]
-name = "tui_bricks_database_client"
+name = "rebrickable_database_api"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-database = { workspace = true }
 utils = { workspace = true }
 
-bincode = { workspace = true }
 serde = { workspace = true }
+bincode = { workspace = true }

@@ -1,0 +1,9 @@
+[package]
+name = "rebrickable_client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rebrickable_database_api = { workspace = true }
+rebrickable_server_api = { workspace = true }
+utils = { workspace = true }

@@ -1,12 +1,13 @@
 [workspace]
 members = [
   "tui_bricks",
-  "tui_cli",
   "cli_tools/tui_bricks_update_image",
-  "libs/database",
   "libs/utils",
-  "cli_tools/tui_bricks_database_server",
-  "cli_tools/tui_bricks_database_client",
+  "rebrickable/client",
+  "rebrickable/database",
+  "rebrickable/database_api",
+  "rebrickable/server",
+  "rebrickable/server_api",
 ]
 default-members = [
   "tui_bricks",
@@ -15,11 +16,17 @@ default-members = [
 resolver="2"
 
 [workspace.dependencies]
-database = { path = "libs/database" }
 tui_bricks_update_image = { path = "cli_tools/tui_bricks_update_image" }
 utils = { path = "libs/utils" }
+rebrickable_client = { path = "rebrickable/client" }
+rebrickable_database = { path = "rebrickable/database" }
+rebrickable_database_api = { path = "rebrickable/database_api" }
+rebrickable_server = { path = "rebrickable/server" }
+rebrickable_server_api = { path = "rebrickable/server_api" }
 
 clap = { version = "4.5.*", features = ["derive"] }
 directories-next = "2.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
 bincode = { version = "2.0.*", features = ["derive"] }
+csv = { version = "1.3.*" }
+rstest = { version = "0.25.*" }

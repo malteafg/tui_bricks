@@ -1,5 +1,5 @@
-use crate::rebrickable_database::*;
-use crate::rebrickable_server::*;
+use rebrickable_database_api::*;
+use rebrickable_server_api::*;
 
 use utils::TcpExt;
 

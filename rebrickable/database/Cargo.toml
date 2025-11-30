@@ -1,0 +1,11 @@
+[package]
+name = "rebrickable_database"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+utils = { workspace = true }
+rebrickable_database_api = { workspace = true }
+
+csv = { workspace = true }
+rstest = { workspace = true }

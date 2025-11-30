@@ -1,4 +1,4 @@
-use utils;
+use utils::PathExt;
 
 use clap::Parser;
 
@@ -27,7 +27,7 @@ pub struct Args {
 fn run(mut args: Args) {
     let mut dst_path = match args.dst_path.take() {
         Some(dst_path) => dst_path,
-        None => utils::cache_dir(),
+        None => PathBuf::cache_dir(),
     };
     if dst_path.extension().is_none() {
         dst_path.push("displayed_image.png");
@@ -39,7 +39,7 @@ fn run(mut args: Args) {
     let mut image_path = match args.images_path.take() {
         Some(image_path) => image_path,
         None => {
-            let mut image_path = utils::data_dir();
+            let mut image_path = PathBuf::data_dir();
             image_path.push("part_images");
             image_path
         }

@@ -1,4 +1,4 @@
-use crate::rebrickable_database::*;
+use rebrickable_database_api::*;
 
 use csv::Reader;
 
@@ -115,17 +115,17 @@ mod tests {
     use super::*;
     use rstest::{fixture, rstest};
     use std::path::PathBuf;
-    use utils;
+    use utils::PathExt;
 
     #[fixture]
     fn database() -> LocalDB {
-        let mut parts_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut parts_path = utils::crate_root!();
         parts_path.push("test-data/parts_example.csv");
 
-        let mut colors_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut colors_path = utils::crate_root!();
         colors_path.push("test-data/colors_example.csv");
 
-        let mut elements_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut elements_path = utils::crate_root!();
         elements_path.push("test-data/elements_example.csv");
 
         LocalDB::new(&parts_path, &colors_path, &elements_path)
@@ -213,13 +213,13 @@ mod tests {
 
     #[test]
     fn dump() {
-        let mut parts_path = utils::data_dir();
+        let mut parts_path = PathBuf::data_dir();
         parts_path.push("parts.csv");
 
-        let mut colors_path = utils::data_dir();
+        let mut colors_path = PathBuf::data_dir();
         colors_path.push("colors.csv");
 
-        let mut elements_path = utils::data_dir();
+        let mut elements_path = PathBuf::data_dir();
         elements_path.push("elements.csv");
 
         let database = LocalDB::new(&parts_path, &colors_path, &elements_path);

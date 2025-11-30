@@ -11,7 +11,7 @@ utils::strong_type!(ColorId, isize);
 
 /// Records match the rebrickable CSV representation
 mod records {
-    use crate::csv_ext::bool_deserializer;
+    use utils::serde_ext::bool_deserializer;
 
     use bincode::{Decode, Encode};
     use serde::{Deserialize, Serialize};

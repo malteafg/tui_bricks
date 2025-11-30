@@ -1,8 +1,10 @@
-use database::rebrickable_server::{GetItemQuery, GetItemResponse, Query, Response};
-use database::{LocalDB, RebrickableDB};
-use utils::TcpExt;
+use rebrickable_database::LocalDB;
+use rebrickable_database_api::RebrickableDB;
+use rebrickable_server_api::{GetItemQuery, GetItemResponse, Query, Response};
+use utils::{PathExt, TcpExt};
 
 use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
 
 fn handle_client<'a, D: RebrickableDB<'a>>(mut stream: TcpStream, database: &'a D) {
     loop {
@@ -47,13 +49,13 @@ fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:4000")?;
     println!("Server listening on 127.0.0.1:4000");
 
-    let mut parts_path = utils::data_dir();
+    let mut parts_path = PathBuf::data_dir();
     parts_path.push("parts.csv");
 
-    let mut colors_path = utils::data_dir();
+    let mut colors_path = PathBuf::data_dir();
     colors_path.push("colors.csv");
 
-    let mut elements_path = utils::data_dir();
+    let mut elements_path = PathBuf::data_dir();
     elements_path.push("elements.csv");
 
     let database = LocalDB::new(&parts_path, &colors_path, &elements_path);

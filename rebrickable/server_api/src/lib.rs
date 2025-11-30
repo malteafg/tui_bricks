@@ -1,4 +1,4 @@
-use crate::rebrickable_database::*;
+use rebrickable_database_api::*;
 
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
