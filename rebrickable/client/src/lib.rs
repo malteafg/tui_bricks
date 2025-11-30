@@ -1,141 +1,113 @@
-use rebrickable_database_api::*;
-use rebrickable_server_api::*;
+mod database;
 
-use utils::TcpExt;
+pub use database::ClientDB;
 
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::net::TcpStream;
+use rebrickable_database_api::{PartId, RebrickableDB};
+use rebrickable_server_api::query::{ColorGetType, GetItem, ItemType, PartGetType, Query};
+use utils::PathExt;
 
-pub struct ClientDB {
-    stream: RefCell<TcpStream>,
+use clap::Parser;
+
+use std::io::{ErrorKind, Write};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
+
+#[derive(Parser, Debug, Clone)]
+pub struct Args {
+    #[command(subcommand)]
+    pub query: Query,
 }
 
-impl ClientDB {
-    pub fn new() -> Self {
-        Self {
-            stream: RefCell::new(TcpStream::connect("127.0.0.1:4000").unwrap()),
+fn run_fzf<D: RebrickableDB>(database: &D, item_type: ItemType) {
+    let dst_path = PathBuf::cache_dir().join("displayed_image.png");
+    let images_path = PathBuf::data_dir().join("part_images");
+    let update_image_cmd = format!(
+        "tui_bricks_update_image {{}} --dst-path=\"{}\" --images-path=\"{}\"",
+        dst_path.display(),
+        images_path.display()
+    );
+
+    let mut child = Command::new("fzf")
+        // .arg("--bind=focus:execute(sh -c '[ -f ../raw_data/parts_red/{}.png ] && cp ../raw_data/parts_red/{}.png ../raw_data/test_image.png' sh {})")
+        // .arg(&format!(
+        //     "--bind=focus:execute({} &>/dev/null &)",
+        //     update_image_cmd
+        // ))
+        // .arg("--preview=(echo {})")
+        .arg(&format!("--preview=({} && echo {{}})", update_image_cmd))
+        .arg("--preview-window=up:30%:wrap")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    {
+        let stdin = child.stdin.as_mut().ok_or("Failed to open stdin").unwrap();
+
+        let iter = match item_type {
+            ItemType::Part => database.iter_part_id(),
+            ItemType::Color => unimplemented!(),
+            ItemType::Element => unimplemented!(),
+        };
+        for key in iter {
+            match writeln!(stdin, "{}", key) {
+                Ok(_) => {
+                    stdin.flush().unwrap();
+                }
+                Err(e) if e.kind() == ErrorKind::BrokenPipe => {
+                    eprintln!("fzf exited early (Broken pipe), stopping write loop");
+                    break;
+                }
+                Err(e) => return Err(Box::new(e)).unwrap(),
+            }
         }
     }
 
-    fn send_and_receive(&self, query: Query) -> Response {
-        self.stream.borrow_mut().send_and_receive(query)
-    }
+    let output = child.wait_with_output().unwrap();
+    let selected_key: PartId = String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .to_string()
+        .into();
+
+    if let Some(value) = database.part_from_id(&selected_key) {
+        println!("You selected: {} => {:#?}", selected_key, value);
+    } else {
+        println!("Key not found: {}", selected_key);
+    };
 }
 
-struct ResponseIter<'a, T> {
-    stream: &'a RefCell<TcpStream>,
-    _marker: PhantomData<T>,
-}
+pub fn run(args: Args) {
+    let database = ClientDB::new();
 
-impl<'a, T> ResponseIter<'a, T> {
-    fn new(stream: &'a RefCell<TcpStream>, query: Query) -> Self {
-        stream.borrow_mut().send(query);
-        Self {
-            stream,
-            _marker: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, T> Iterator for ResponseIter<'a, T> {
-    type Item = IterItemsResponse;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let response = self.stream.borrow_mut().receive();
-
-        match response {
-            Response::IterItems(iter_response) => iter_response,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
+    match args.query {
+        Query::Get { get_item } => match get_item {
+            GetItem::Part { part } => match part {
+                PartGetType::Id { id } => {
+                    let item = database.part_from_id(&id);
+                    dbg!(item);
+                }
+                PartGetType::Name { name } => {
+                    let item = database.part_from_name(&name);
+                    dbg!(item);
+                }
+            },
+            GetItem::Color { color } => match color {
+                ColorGetType::Id { id } => {
+                    let item = database.color_from_id(&id);
+                    dbg!(item);
+                }
+                ColorGetType::Name { name } => {
+                    let item = database.color_from_name(&name);
+                    dbg!(item);
+                }
+            },
+            GetItem::Element { id } => {
+                let item = database.element_from_id(&id);
+                dbg!(item);
             }
+        },
+        Query::Find { item_type } => {
+            run_fzf(&database, item_type);
         }
-    }
-}
-
-impl<'a> RebrickableDB<'a> for ClientDB {
-    fn part_from_id(&self, id: &PartId) -> Option<Cow<'a, Part>> {
-        let query = Query::GetItem(GetItemQuery::PartFromId(id.clone()));
-        let response = self.send_and_receive(query);
-
-        match response {
-            Response::GetItem(GetItemResponse::Part(part), _) => Some(Cow::Owned(part)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
-            }
-        }
-    }
-
-    fn part_from_name(&self, name: &str) -> Option<Cow<'a, Part>> {
-        let query = Query::GetItem(GetItemQuery::PartFromName(name.to_string()));
-        let response = self.send_and_receive(query);
-
-        match response {
-            Response::GetItem(GetItemResponse::Part(part), _) => Some(Cow::Owned(part)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
-            }
-        }
-    }
-
-    fn color_from_id(&self, id: &ColorId) -> Option<Cow<'a, ColorRecord>> {
-        let query = Query::GetItem(GetItemQuery::ColorFromId(id.clone()));
-        let response = self.send_and_receive(query);
-
-        match response {
-            Response::GetItem(GetItemResponse::Color(color), _) => Some(Cow::Owned(color)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
-            }
-        }
-    }
-
-    fn color_from_name(&self, name: &str) -> Option<Cow<'a, ColorRecord>> {
-        let query = Query::GetItem(GetItemQuery::ColorFromName(name.to_string()));
-        let response = self.send_and_receive(query);
-
-        match response {
-            Response::GetItem(GetItemResponse::Color(color), _) => Some(Cow::Owned(color)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
-            }
-        }
-    }
-
-    fn element_from_id(&self, id: &ElementId) -> Option<Cow<'a, ElementRecord>> {
-        let query = Query::GetItem(GetItemQuery::ElementFromId(id.clone()));
-        let response = self.send_and_receive(query);
-
-        match response {
-            Response::GetItem(GetItemResponse::Element(element), _) => Some(Cow::Owned(element)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
-            }
-        }
-    }
-
-    fn iter_part_id(&self) -> impl Iterator<Item = Cow<'a, PartId>> {
-        let query = Query::IterItems(IterItemsQuery::PartId);
-        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream, query);
-
-        iter.map(|element| match element {
-            IterItemsResponse::PartId(part_id) => Cow::Owned(part_id),
-            response_iter => {
-                eprintln!("ResponseIter: {:#?}", response_iter);
-                panic!();
-            }
-        })
-    }
+    };
 }

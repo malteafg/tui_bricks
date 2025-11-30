@@ -54,16 +54,16 @@ pub struct Part {
     pub element_ids: Vec<ElementId>,
 }
 
-pub trait RebrickableDB<'a> {
-    fn part_from_id(&'a self, id: &PartId) -> Option<Cow<'a, Part>>;
+pub trait RebrickableDB {
+    fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>>;
 
-    fn part_from_name(&'a self, name: &str) -> Option<Cow<'a, Part>>;
+    fn part_from_name(&self, name: &str) -> Option<Cow<Part>>;
 
-    fn color_from_id(&'a self, id: &ColorId) -> Option<Cow<'a, ColorRecord>>;
+    fn color_from_id(&self, id: &ColorId) -> Option<Cow<ColorRecord>>;
 
-    fn color_from_name(&'a self, name: &str) -> Option<Cow<'a, ColorRecord>>;
+    fn color_from_name(&self, name: &str) -> Option<Cow<ColorRecord>>;
 
-    fn element_from_id(&'a self, id: &ElementId) -> Option<Cow<'a, ElementRecord>>;
+    fn element_from_id(&self, id: &ElementId) -> Option<Cow<ElementRecord>>;
 
-    fn iter_part_id(&'a self) -> impl Iterator<Item = Cow<'a, PartId>>;
+    fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>>;
 }

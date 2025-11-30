@@ -82,30 +82,30 @@ impl LocalDB {
     }
 }
 
-impl<'a> RebrickableDB<'a> for LocalDB {
-    fn part_from_id(&'a self, id: &PartId) -> Option<Cow<'a, Part>> {
+impl RebrickableDB for LocalDB {
+    fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>> {
         self.parts.get(id).map(Cow::Borrowed)
     }
 
-    fn part_from_name(&'a self, name: &str) -> Option<Cow<'a, Part>> {
+    fn part_from_name(&self, name: &str) -> Option<Cow<Part>> {
         let part_id = self.name_to_part_id.get(name)?;
         self.parts.get(part_id).map(Cow::Borrowed)
     }
 
-    fn color_from_id(&'a self, id: &ColorId) -> Option<Cow<'a, ColorRecord>> {
+    fn color_from_id(&self, id: &ColorId) -> Option<Cow<ColorRecord>> {
         self.colors.get(id).map(Cow::Borrowed)
     }
 
-    fn color_from_name(&'a self, name: &str) -> Option<Cow<'a, ColorRecord>> {
+    fn color_from_name(&self, name: &str) -> Option<Cow<ColorRecord>> {
         let color_id = self.name_to_color_id.get(name)?;
         self.colors.get(color_id).map(Cow::Borrowed)
     }
 
-    fn element_from_id(&'a self, id: &ElementId) -> Option<Cow<'a, ElementRecord>> {
+    fn element_from_id(&self, id: &ElementId) -> Option<Cow<ElementRecord>> {
         self.elements.get(id).map(Cow::Borrowed)
     }
 
-    fn iter_part_id(&'a self) -> impl Iterator<Item = Cow<'a, PartId>> {
+    fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>> {
         self.parts.keys().map(Cow::Borrowed)
     }
 }

@@ -54,6 +54,19 @@ impl<Tag> From<&Path> for Strong<PathBuf, Tag> {
     }
 }
 
+impl<T, Tag> std::str::FromStr for Strong<T, Tag>
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let value = s.parse::<T>().map_err(|e| e.to_string())?;
+        Ok(Self::new(value))
+    }
+}
+
 impl<T: std::fmt::Display, Tag> std::fmt::Display for Strong<T, Tag> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.internal)
