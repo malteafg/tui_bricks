@@ -1,6 +1,8 @@
 use rebrickable_database::LocalDB;
 use rebrickable_database_api::RebrickableDB;
-use rebrickable_server_api::{GetItemQuery, GetItemResponse, Query, Response};
+use rebrickable_server_api::{
+    GetItemQuery, GetItemResponse, IterItemsQuery, IterItemsResponse, Query, Response,
+};
 use utils::{PathExt, TcpExt};
 
 use std::net::{TcpListener, TcpStream};
@@ -12,7 +14,7 @@ fn handle_client<'a, D: RebrickableDB<'a>>(mut stream: TcpStream, database: &'a 
 
         println!("Received query: {:?}", query);
 
-        let response = match query {
+        match query {
             Query::GetItem(query) => {
                 let response = match &query {
                     GetItemQuery::PartFromId(id) => match database.part_from_id(&id) {
@@ -36,12 +38,21 @@ fn handle_client<'a, D: RebrickableDB<'a>>(mut stream: TcpStream, database: &'a 
                         None => GetItemResponse::NotFound,
                     },
                 };
-                Response::GetItem(response, query)
+                stream.send(Response::GetItem(response, query));
             }
-            Query::IterItems(_) => unimplemented!(),
-        };
-
-        stream.send(response);
+            Query::IterItems(query) => {
+                match query {
+                    IterItemsQuery::PartId => {
+                        for id in database.iter_part_id() {
+                            stream.send(Response::IterItems(Some(IterItemsResponse::PartId(
+                                id.into_owned(),
+                            ))));
+                        }
+                    }
+                }
+                stream.send(Response::IterItems(None));
+            }
+        }
     }
 }
 

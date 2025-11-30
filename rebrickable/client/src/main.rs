@@ -1,14 +1,77 @@
 use rebrickable_client::ClientDB;
-use rebrickable_database_api::RebrickableDB;
+use rebrickable_database_api::{PartId, RebrickableDB};
+use utils::PathExt;
 
-fn main() -> std::io::Result<()> {
-    let db = ClientDB::new();
+use std::error::Error;
+use std::io::{ErrorKind, Write};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
-    let part = db.part_from_id(&"4070".into());
-    println!("Response: {:#?}", part);
+fn main() -> Result<(), Box<dyn Error>> {
+    let database = ClientDB::new();
 
-    let color = db.color_from_name("Blue");
-    println!("Response: {:#?}", color);
+    // let part = database.part_from_id(&"4070".into());
+    // println!("Response: {:#?}", part);
+
+    // let color = database.color_from_name("Blue");
+    // println!("Response: {:#?}", color);
+
+    // Ok(())
+
+    let dst_path = PathBuf::cache_dir().join("displayed_image.png");
+    let images_path = PathBuf::data_dir().join("part_images");
+    let update_image_cmd = format!(
+        "tui_bricks_update_image {{}} --dst-path=\"{}\" --images-path=\"{}\"",
+        dst_path.display(),
+        images_path.display()
+    );
+
+    let mut child = Command::new("fzf")
+        // .arg("--bind=focus:execute(sh -c '[ -f ../raw_data/parts_red/{}.png ] && cp ../raw_data/parts_red/{}.png ../raw_data/test_image.png' sh {})")
+        // .arg(&format!(
+        //     "--bind=focus:execute({} &>/dev/null &)",
+        //     update_image_cmd
+        // ))
+        // .arg("--preview=(echo {})")
+        .arg(&format!("--preview=({} && echo {{}})", update_image_cmd))
+        .arg("--preview-window=up:30%:wrap")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    {
+        let stdin = child.stdin.as_mut().ok_or("Failed to open stdin")?;
+
+        for key in database.iter_part_id() {
+            // Attempt to write key
+            match writeln!(stdin, "{}", key) {
+                Ok(_) => {
+                    stdin.flush()?; // Optional but helps
+                }
+                Err(e) if e.kind() == ErrorKind::BrokenPipe => {
+                    // fzf exited early — stop writing
+                    eprintln!("fzf exited early (Broken pipe), stopping write loop");
+                    break;
+                }
+                Err(e) => return Err(Box::new(e)), // Other unexpected error
+            }
+        }
+    }
+
+    // Step 4: Read selected key from fzf stdout
+    let output = child.wait_with_output()?;
+    // dbg!(String::from_utf8_lossy(&output.stdout));
+    let selected_key: PartId = String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .to_string()
+        .into();
+
+    // Step 5: Use selected key
+    if let Some(value) = database.part_from_id(&selected_key) {
+        println!("You selected: {} => {:?}", selected_key, value);
+    } else {
+        println!("Key not found: {}", selected_key);
+    };
 
     Ok(())
 }
