@@ -15,10 +15,11 @@ pub struct ClientDB {
 }
 
 impl ClientDB {
-    pub fn new() -> Self {
-        Self {
-            stream: RefCell::new(TcpStream::connect("127.0.0.1:4000").unwrap()),
-        }
+    pub fn new() -> Result<Self, Error> {
+        let stream = TcpStream::connect("127.0.0.1:4000")?;
+        Ok(Self {
+            stream: RefCell::new(stream),
+        })
     }
 
     fn send_and_receive(&self, query: Query) -> Result<Response, Error> {
