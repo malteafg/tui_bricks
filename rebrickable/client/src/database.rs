@@ -82,12 +82,10 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn part_from_name(&self, name: &str) -> Option<Cow<Part>> {
+    fn part_from_name(&self, name: &PartName) -> Option<Cow<Part>> {
         let query = Query::Get {
             get_item: GetItem::Part {
-                part: PartGetType::Name {
-                    name: name.to_string(),
-                },
+                part: PartGetType::Name { name: name.clone() },
             },
         };
         let response = self.send_and_receive(query);
@@ -126,12 +124,10 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn color_from_name(&self, name: &str) -> Option<Cow<ColorRecord>> {
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<ColorRecord>> {
         let query = Query::Get {
             get_item: GetItem::Color {
-                color: ColorGetType::Name {
-                    name: name.to_string(),
-                },
+                color: ColorGetType::Name { name: name.clone() },
             },
         };
         let response = self.send_and_receive(query);

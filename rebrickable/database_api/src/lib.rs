@@ -3,11 +3,17 @@ use utils::strong_type::Strong;
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    collections::{BTreeMap, BTreeSet},
+};
 
 utils::strong_type!(PartId, String);
 utils::strong_type!(ElementId, usize);
 utils::strong_type!(ColorId, isize);
+
+utils::strong_type!(PartName, String);
+utils::strong_type!(ColorName, String);
 
 /// Records match the rebrickable CSV representation
 mod records {
@@ -18,8 +24,9 @@ mod records {
 
     #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
     pub struct PartRecord {
+        // Named part_num and not part_id, because this matches rebrickable CSV representation.
         pub part_num: super::PartId,
-        pub name: String,
+        pub name: super::PartName,
         pub part_cat_id: String,
         pub part_material: String,
     }
@@ -27,7 +34,7 @@ mod records {
     #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
     pub struct ColorRecord {
         pub id: super::ColorId,
-        pub name: String,
+        pub name: super::ColorName,
         pub rgb: String,
         #[serde(deserialize_with = "bool_deserializer")]
         pub is_trans: bool,
@@ -51,17 +58,17 @@ pub use records::{ColorRecord, ElementRecord, PartRecord};
 #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct Part {
     pub part_record: PartRecord,
-    pub element_ids: Vec<ElementId>,
+    pub colors: BTreeMap<ColorName, BTreeSet<ElementId>>,
 }
 
 pub trait RebrickableDB {
     fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>>;
 
-    fn part_from_name(&self, name: &str) -> Option<Cow<Part>>;
+    fn part_from_name(&self, name: &PartName) -> Option<Cow<Part>>;
 
     fn color_from_id(&self, id: &ColorId) -> Option<Cow<ColorRecord>>;
 
-    fn color_from_name(&self, name: &str) -> Option<Cow<ColorRecord>>;
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<ColorRecord>>;
 
     fn element_from_id(&self, id: &ElementId) -> Option<Cow<ElementRecord>>;
 

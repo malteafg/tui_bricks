@@ -17,7 +17,7 @@ pub mod query {
         /// Get the part by its id
         Id { id: PartId },
         /// Get the part by its name
-        Name { name: String },
+        Name { name: PartName },
     }
 
     #[derive(Debug, Clone, Subcommand, Decode, Encode, Deserialize, Serialize)]
@@ -25,7 +25,7 @@ pub mod query {
         /// Get the part by its id
         Id { id: ColorId },
         /// Get the part by its name
-        Name { name: String },
+        Name { name: ColorName },
     }
 
     #[derive(Debug, Clone, Subcommand, Decode, Encode, Deserialize, Serialize)]

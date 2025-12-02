@@ -75,9 +75,10 @@ impl<T: std::fmt::Display, Tag> std::fmt::Display for Strong<T, Tag> {
 
 impl<T: std::fmt::Debug, Tag> std::fmt::Debug for Strong<T, Tag> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple(std::any::type_name::<Strong<T, Tag>>())
-            .field(&self.internal)
-            .finish()
+        // f.debug_tuple(std::any::type_name::<Strong<T, Tag>>())
+        //     .field(&self.internal)
+        //     .finish()
+        write!(f, "{:?}", self.internal)
     }
 }
 
@@ -88,6 +89,18 @@ impl<T: PartialEq, Tag> PartialEq for Strong<T, Tag> {
 }
 
 impl<T: Eq, Tag> Eq for Strong<T, Tag> {}
+
+impl<T: PartialOrd, Tag> PartialOrd for Strong<T, Tag> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.internal.partial_cmp(&other.internal)
+    }
+}
+
+impl<T: Ord, Tag> Ord for Strong<T, Tag> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.internal.cmp(&other.internal)
+    }
+}
 
 impl<T: std::hash::Hash, Tag> std::hash::Hash for Strong<T, Tag> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

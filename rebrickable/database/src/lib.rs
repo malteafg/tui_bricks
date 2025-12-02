@@ -3,7 +3,7 @@ use rebrickable_database_api::*;
 use csv::Reader;
 
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::path::Path;
 
@@ -17,8 +17,8 @@ pub struct LocalDB {
     colors: HashMap<ColorId, ColorRecord>,
     elements: HashMap<ElementId, ElementRecord>,
 
-    name_to_part_id: HashMap<String, PartId>,
-    name_to_color_id: HashMap<String, ColorId>,
+    name_to_part_id: HashMap<PartName, PartId>,
+    name_to_color_id: HashMap<ColorName, ColorId>,
 }
 
 impl LocalDB {
@@ -37,7 +37,7 @@ impl LocalDB {
                 rec.part_num.clone(),
                 Part {
                     part_record: rec,
-                    element_ids: Vec::new(),
+                    colors: BTreeMap::new(),
                 },
             );
         }
@@ -63,11 +63,12 @@ impl LocalDB {
                 panic!("Duplicate element {:?}", rec);
             }
 
-            parts
-                .get_mut(&rec.part_num)
-                .unwrap()
-                .element_ids
-                .push(rec.element_id);
+            let color_name = colors.get(&rec.color_id).unwrap().name.clone();
+            let part_colors = &mut parts.get_mut(&rec.part_num).unwrap().colors;
+            part_colors
+                .entry(color_name)
+                .or_default()
+                .insert(rec.element_id);
 
             elements.insert(rec.element_id, rec);
         }
@@ -87,7 +88,7 @@ impl RebrickableDB for LocalDB {
         self.parts.get(id).map(Cow::Borrowed)
     }
 
-    fn part_from_name(&self, name: &str) -> Option<Cow<Part>> {
+    fn part_from_name(&self, name: &PartName) -> Option<Cow<Part>> {
         let part_id = self.name_to_part_id.get(name)?;
         self.parts.get(part_id).map(Cow::Borrowed)
     }
@@ -96,7 +97,7 @@ impl RebrickableDB for LocalDB {
         self.colors.get(id).map(Cow::Borrowed)
     }
 
-    fn color_from_name(&self, name: &str) -> Option<Cow<ColorRecord>> {
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<ColorRecord>> {
         let color_id = self.name_to_color_id.get(name)?;
         self.colors.get(color_id).map(Cow::Borrowed)
     }
@@ -137,7 +138,7 @@ mod tests {
 
         let part = &database.parts.get(&"3021".into()).unwrap();
         assert_eq!(*part.part_record.part_num, "3021");
-        assert_eq!(part.part_record.name, "Plate 2 x 3");
+        assert_eq!(part.part_record.name, "Plate 2 x 3".into());
         assert_eq!(part.part_record.part_cat_id, "14");
         assert_eq!(part.part_record.part_material, "Plastic");
         assert_eq!(part.element_ids.len(), 3);
@@ -146,7 +147,7 @@ mod tests {
         assert_eq!(*part.part_record.part_num, "3794b");
         assert_eq!(
             part.part_record.name,
-            "Plate Special 1 x 2 with 1 Stud with Groove (Jumper)"
+            "Plate Special 1 x 2 with 1 Stud with Groove (Jumper)".into()
         );
         assert_eq!(part.part_record.part_cat_id, "9");
         assert_eq!(part.part_record.part_material, "Plastic");
@@ -154,7 +155,10 @@ mod tests {
 
         let part = &database.parts.get(&"4070".into()).unwrap();
         assert_eq!(*part.part_record.part_num, "4070");
-        assert_eq!(part.part_record.name, "Brick Special 1 x 1 with Headlight");
+        assert_eq!(
+            part.part_record.name,
+            "Brick Special 1 x 1 with Headlight".into()
+        );
         assert_eq!(part.part_record.part_cat_id, "5");
         assert_eq!(part.part_record.part_material, "Plastic");
         assert_eq!(part.element_ids.len(), 5);
@@ -166,7 +170,7 @@ mod tests {
 
         let color = &database.colors.get(&(-1).into()).unwrap();
         assert_eq!(*color.id, -1);
-        assert_eq!(color.name, "[Unknown]");
+        assert_eq!(color.name, "[Unknown]".into());
         assert_eq!(color.rgb, "0033B2");
         assert_eq!(color.is_trans, false);
         assert_eq!(color.num_parts, 20);
@@ -176,7 +180,7 @@ mod tests {
 
         let color = &database.colors.get(&1.into()).unwrap();
         assert_eq!(*color.id, 1);
-        assert_eq!(color.name, "Blue");
+        assert_eq!(color.name, "Blue".into());
         assert_eq!(color.rgb, "0055BF");
         assert_eq!(color.is_trans, false);
         assert_eq!(color.num_parts, 193056);
@@ -206,7 +210,7 @@ mod tests {
     fn name_to_part_id(database: LocalDB) {
         assert_eq!(database.parts.len(), database.name_to_part_id.len());
         assert_eq!(
-            **database.name_to_part_id.get("Plate 2 x 3").unwrap(),
+            **database.name_to_part_id.get(&"Plate 2 x 3".into()).unwrap(),
             "3021"
         );
     }
@@ -229,8 +233,8 @@ mod tests {
         let part = database.part_from_id(&"4070".into()).unwrap();
         dbg!(&part);
         let mut colors = Vec::new();
-        for id in &part.element_ids {
-            let element = database.element_from_id(id).unwrap();
+        for (element_id, _) in &part.element_ids {
+            let element = database.element_from_id(element_id).unwrap();
             let color = database.color_from_id(&element.color_id).unwrap();
             colors.push((color.name.clone(), element.clone()));
         }
