@@ -57,11 +57,10 @@ pub fn run_fzf<D: RebrickableDB>(database: &D, item_type: ItemType) {
         .to_string()
         .into();
 
-    if let Some(value) = database.part_from_id(&selected_key) {
-        println!("You selected: {} => {:#?}", selected_key, value);
-    } else {
-        println!("Key not found: {}", selected_key);
-    };
+    match database.part_from_id(&selected_key) {
+        Some(part) => print_part(&part),
+        None => println!("Could not find part"),
+    }
 }
 
 fn print_part(part: &Part) {
@@ -69,6 +68,14 @@ fn print_part(part: &Part) {
     println!("Id: {}", part.part_record.part_num);
     println!("Category id: {}", part.part_record.part_cat_id);
     println!("Material: {}", part.part_record.part_material);
+    println!("Child parts:");
+    for (child_id, rel_types) in &part.child_rels {
+        println!("    {}, {:?}", child_id, rel_types);
+    }
+    println!("Parent parts:");
+    for (parent_id, rel_types) in &part.parent_rels {
+        println!("    {}, {:?}", parent_id, rel_types);
+    }
     println!("Color variations: {} unique colors:", part.colors.len());
     for (color_name, elements_ids) in &part.colors {
         println!("    {}, {:?}", color_name, elements_ids);

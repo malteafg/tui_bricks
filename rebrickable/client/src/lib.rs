@@ -30,7 +30,15 @@ pub fn run(args: Args) {
             let mut elements_path = PathBuf::data_dir();
             elements_path.push("elements.csv");
 
-            let database = LocalDB::new(&parts_path, &colors_path, &elements_path);
+            let mut relationships_path = PathBuf::data_dir();
+            relationships_path.push("part_relationships.csv");
+
+            let database = LocalDB::new(
+                &parts_path,
+                &colors_path,
+                &elements_path,
+                &relationships_path,
+            );
             client::handle_query(&database, args.query);
         }
     }

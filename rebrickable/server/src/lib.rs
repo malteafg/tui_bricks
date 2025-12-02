@@ -123,7 +123,15 @@ pub fn run() -> std::io::Result<()> {
     let mut elements_path = PathBuf::data_dir();
     elements_path.push("elements.csv");
 
-    let database = Arc::new(LocalDB::new(&parts_path, &colors_path, &elements_path));
+    let mut relationships_path = PathBuf::data_dir();
+    relationships_path.push("part_relationships.csv");
+
+    let database = Arc::new(LocalDB::new(
+        &parts_path,
+        &colors_path,
+        &elements_path,
+        &relationships_path,
+    ));
 
     let mut threads = vec![];
 

@@ -15,12 +15,32 @@ utils::strong_type!(ColorId, isize);
 utils::strong_type!(PartName, String);
 utils::strong_type!(ColorName, String);
 
+#[derive(
+    Debug, Copy, Clone, Deserialize, Serialize, Encode, Decode, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub enum RelationshipType {
+    /// P
+    Print,
+    /// R
+    Pair,
+    /// B
+    SubPart,
+    /// M
+    Mold,
+    /// T
+    Pattern,
+    /// A
+    Alternate,
+}
+
 /// Records match the rebrickable CSV representation
 mod records {
     use utils::serde_ext::bool_deserializer;
 
     use bincode::{Decode, Encode};
-    use serde::{Deserialize, Serialize};
+    use serde::{Deserialize, Deserializer, Serialize};
+
+    use crate::RelationshipType;
 
     #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
     pub struct PartRecord {
@@ -51,14 +71,45 @@ mod records {
         pub color_id: super::ColorId,
         pub design_id: Option<usize>,
     }
+
+    pub fn relationship_type_deserializer<'de, D>(
+        deserializer: D,
+    ) -> Result<RelationshipType, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        match s {
+            "P" => Ok(RelationshipType::Print),
+            "R" => Ok(RelationshipType::Pair),
+            "B" => Ok(RelationshipType::SubPart),
+            "M" => Ok(RelationshipType::Mold),
+            "T" => Ok(RelationshipType::Pattern),
+            "A" => Ok(RelationshipType::Alternate),
+            _ => Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(s),
+                &"Should be P, R, B, M, T, or A",
+            )),
+        }
+    }
+
+    #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+    pub struct RelationshipRecord {
+        #[serde(deserialize_with = "relationship_type_deserializer")]
+        pub rel_type: super::RelationshipType,
+        pub child_part_num: super::PartId,
+        pub parent_part_num: super::PartId,
+    }
 }
 
-pub use records::{ColorRecord, ElementRecord, PartRecord};
+pub use records::{ColorRecord, ElementRecord, PartRecord, RelationshipRecord};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
 pub struct Part {
     pub part_record: PartRecord,
     pub colors: BTreeMap<ColorName, BTreeSet<ElementId>>,
+    pub parent_rels: BTreeMap<PartId, BTreeSet<RelationshipType>>,
+    pub child_rels: BTreeMap<PartId, BTreeSet<RelationshipType>>,
 }
 
 pub trait RebrickableDB {

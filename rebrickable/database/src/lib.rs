@@ -22,7 +22,12 @@ pub struct LocalDB {
 }
 
 impl LocalDB {
-    pub fn new<P: AsRef<Path>>(parts_path: P, colors_path: P, elements_path: P) -> Self {
+    pub fn new<P: AsRef<Path>>(
+        parts_path: P,
+        colors_path: P,
+        elements_path: P,
+        relationships_path: P,
+    ) -> Self {
         let mut parts = HashMap::new();
         let mut name_to_part_id = HashMap::new();
         for rec in get_csv_reader(parts_path).unwrap().deserialize() {
@@ -38,6 +43,8 @@ impl LocalDB {
                 Part {
                     part_record: rec,
                     colors: BTreeMap::new(),
+                    parent_rels: BTreeMap::new(),
+                    child_rels: BTreeMap::new(),
                 },
             );
         }
@@ -71,6 +78,25 @@ impl LocalDB {
                 .insert(rec.element_id);
 
             elements.insert(rec.element_id, rec);
+        }
+
+        for rec in get_csv_reader(relationships_path).unwrap().deserialize() {
+            let rec: RelationshipRecord = rec.unwrap();
+            parts
+                .get_mut(&rec.child_part_num)
+                .unwrap()
+                .parent_rels
+                .entry(rec.parent_part_num.clone())
+                .or_default()
+                .insert(rec.rel_type);
+
+            parts
+                .get_mut(&rec.parent_part_num)
+                .unwrap()
+                .child_rels
+                .entry(rec.child_part_num.clone())
+                .or_default()
+                .insert(rec.rel_type);
         }
 
         Self {
@@ -226,21 +252,20 @@ mod tests {
         let mut elements_path = PathBuf::data_dir();
         elements_path.push("elements.csv");
 
-        let database = LocalDB::new(&parts_path, &colors_path, &elements_path);
+        let mut relationships_path = PathBuf::data_dir();
+        relationships_path.push("part_relationships.csv");
+
+        let database = LocalDB::new(
+            &parts_path,
+            &colors_path,
+            &elements_path,
+            &relationships_path,
+        );
 
         dbg!(&database.color_from_id(&3.into()));
 
         let part = database.part_from_id(&"4070".into()).unwrap();
         dbg!(&part);
-        let mut colors = Vec::new();
-        for (element_id, _) in &part.element_ids {
-            let element = database.element_from_id(element_id).unwrap();
-            let color = database.color_from_id(&element.color_id).unwrap();
-            colors.push((color.name.clone(), element.clone()));
-        }
-
-        colors.sort_by(|c1, c2| c1.0.cmp(&c2.0));
-        dbg!(colors);
         // for color in &colors {
         //     dbg!(&color.0);
         // }
