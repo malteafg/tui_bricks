@@ -1,6 +1,5 @@
 use std::io::Error;
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, atomic::AtomicBool};
 use std::thread;
@@ -10,7 +9,7 @@ use rebrickable_database::LocalDB;
 use rebrickable_database_api::RebrickableDB;
 use rebrickable_server_api::query::{ColorGetType, GetItem, ItemType, PartGetType, Query};
 use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
-use utils::{PathExt, TcpExt};
+use utils::TcpExt;
 
 struct ClientHandler<D> {
     stream: TcpStream,
@@ -114,27 +113,9 @@ pub fn run() -> std::io::Result<()> {
     })
     .unwrap();
 
-    let mut parts_path = PathBuf::data_dir();
-    parts_path.push("parts.csv");
-
-    let mut colors_path = PathBuf::data_dir();
-    colors_path.push("colors.csv");
-
-    let mut elements_path = PathBuf::data_dir();
-    elements_path.push("elements.csv");
-
-    let mut relationships_path = PathBuf::data_dir();
-    relationships_path.push("part_relationships.csv");
-
-    let database = Arc::new(LocalDB::new(
-        &parts_path,
-        &colors_path,
-        &elements_path,
-        &relationships_path,
-    ));
+    let database = Arc::new(LocalDB::default());
 
     let mut threads = vec![];
-
     while !shutdown.load(Ordering::SeqCst) {
         match listener.accept() {
             Ok((stream, _)) => {

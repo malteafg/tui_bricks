@@ -103,7 +103,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn color_from_id(&self, id: &ColorId) -> Option<Cow<ColorRecord>> {
+    fn color_from_id(&self, id: &ColorId) -> Option<Cow<Color>> {
         let query = Query::Get {
             get_item: GetItem::Color {
                 color: ColorGetType::Id { id: id.clone() },
@@ -124,7 +124,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn color_from_name(&self, name: &ColorName) -> Option<Cow<ColorRecord>> {
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<Color>> {
         let query = Query::Get {
             get_item: GetItem::Color {
                 color: ColorGetType::Name { name: name.clone() },
@@ -145,7 +145,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn element_from_id(&self, id: &ElementId) -> Option<Cow<ElementRecord>> {
+    fn element_from_id(&self, id: &ElementId) -> Option<Cow<Element>> {
         let query = Query::Get {
             get_item: GetItem::Element { id: id.clone() },
         };

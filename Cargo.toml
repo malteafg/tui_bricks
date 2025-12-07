@@ -28,6 +28,6 @@ clap = { version = "4.5.*", features = ["derive"] }
 directories-next = "2.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
 bincode = { version = "2.0.*", features = ["derive"] }
-csv = { version = "1.3.*" }
-rstest = { version = "0.25.*" }
+csv = { version = "1.4.*" }
+rstest = { version = "0.26.*" }
 ctrlc = { version = "3.0.*" }

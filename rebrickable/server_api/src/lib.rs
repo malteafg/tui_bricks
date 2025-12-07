@@ -65,8 +65,8 @@ pub mod response {
     #[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
     pub enum GetItemResponse {
         Part(Part),
-        Color(ColorRecord),
-        Element(ElementRecord),
+        Color(Color),
+        Element(Element),
         NotFound,
     }
 
