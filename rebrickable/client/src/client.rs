@@ -1,12 +1,30 @@
-use rebrickable_database_api::{PartId, RebrickableDB};
-use rebrickable_server_api::query::{ColorGetType, GetItem, ItemType, PartGetType, Query};
+use rebrickable_database_api::RebrickableDB;
+use rebrickable_server_api::query::{
+    ColorFindType, ColorGetType, FindItem, GetItem, PartFindType, PartGetType, Query,
+};
 use utils::PathExt;
 
+use std::fmt::Display;
 use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-pub fn run_fzf<D: RebrickableDB>(database: &D, item_type: ItemType) {
+fn write_iter(mut writer: impl Write, iter: impl Iterator<Item = impl Display>) {
+    for key in iter {
+        match writeln!(writer, "{}", key) {
+            Ok(_) => {
+                writer.flush().unwrap();
+            }
+            Err(e) if e.kind() == ErrorKind::BrokenPipe => {
+                eprintln!("fzf exited early (Broken pipe), stopping write loop");
+                break;
+            }
+            Err(e) => return Err(Box::new(e)).unwrap(),
+        }
+    }
+}
+
+pub fn run_fzf<D: RebrickableDB>(database: &D, find_item: FindItem) {
     let dst_path = PathBuf::cache_dir().join("displayed_image.png");
     let images_path = PathBuf::data_dir().join("part_images");
     let update_image_cmd = format!(
@@ -32,35 +50,56 @@ pub fn run_fzf<D: RebrickableDB>(database: &D, item_type: ItemType) {
     {
         let stdin = child.stdin.as_mut().ok_or("Failed to open stdin").unwrap();
 
-        let iter = match item_type {
-            ItemType::Part => database.iter_part_id(),
-            ItemType::Color => unimplemented!(),
-            ItemType::Element => unimplemented!(),
+        match find_item {
+            FindItem::Part {
+                part: PartFindType::Id,
+            } => write_iter(stdin, database.iter_part_id()),
+            FindItem::Part {
+                part: PartFindType::Name,
+            } => write_iter(stdin, database.iter_part_name()),
+            FindItem::Color {
+                color: ColorFindType::Id,
+            } => write_iter(stdin, database.iter_color_id()),
+            FindItem::Color {
+                color: ColorFindType::Name,
+            } => write_iter(stdin, database.iter_color_name()),
+            FindItem::Element => write_iter(stdin, database.iter_element_id()),
         };
-        for key in iter {
-            match writeln!(stdin, "{}", key) {
-                Ok(_) => {
-                    stdin.flush().unwrap();
-                }
-                Err(e) if e.kind() == ErrorKind::BrokenPipe => {
-                    eprintln!("fzf exited early (Broken pipe), stopping write loop");
-                    break;
-                }
-                Err(e) => return Err(Box::new(e)).unwrap(),
-            }
-        }
     }
 
     let output = child.wait_with_output().unwrap();
-    let selected_key: PartId = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string()
-        .into();
+    let selected_key = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
-    match database.part_from_id(&selected_key) {
-        Some(part) => println!("{}", part),
-        None => println!("Could not find part"),
-    }
+    match find_item {
+        FindItem::Part {
+            part: PartFindType::Id,
+        } => match database.part_from_id(&selected_key.into()) {
+            Some(part) => println!("{}", part),
+            None => println!("Could not find part"),
+        },
+        FindItem::Part {
+            part: PartFindType::Name,
+        } => match database.part_from_name(&selected_key.into()) {
+            Some(part) => println!("{}", part),
+            None => println!("Could not find part"),
+        },
+        FindItem::Color {
+            color: ColorFindType::Id,
+        } => match database.color_from_id(&selected_key.parse().unwrap()) {
+            Some(color) => println!("{}", color),
+            None => println!("Could not find color"),
+        },
+        FindItem::Color {
+            color: ColorFindType::Name,
+        } => match database.color_from_name(&selected_key.into()) {
+            Some(color) => println!("{}", color),
+            None => println!("Could not find color"),
+        },
+        FindItem::Element => match database.element_from_id(&selected_key.parse().unwrap()) {
+            Some(element) => println!("{}", element),
+            None => println!("Could not find element"),
+        },
+    };
 }
 
 pub fn handle_query<D: RebrickableDB>(database: &D, query: Query) {
@@ -91,7 +130,9 @@ pub fn handle_query<D: RebrickableDB>(database: &D, query: Query) {
                 None => println!("Could not find element with id {}", id),
             },
         },
-        Query::Find { item_type } => {
+        Query::Find {
+            find_item: item_type,
+        } => {
             run_fzf(database, item_type);
         }
     };

@@ -264,4 +264,12 @@ pub trait RebrickableDB {
     fn element_from_id(&self, id: &ElementId) -> Option<Cow<Element>>;
 
     fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>>;
+
+    fn iter_part_name(&self) -> impl Iterator<Item = Cow<PartName>>;
+
+    fn iter_color_id(&self) -> impl Iterator<Item = Cow<ColorId>>;
+
+    fn iter_color_name(&self) -> impl Iterator<Item = Cow<ColorName>>;
+
+    fn iter_element_id(&self) -> impl Iterator<Item = Cow<ElementId>>;
 }

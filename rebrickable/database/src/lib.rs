@@ -161,6 +161,8 @@ impl Default for LocalDB {
     }
 }
 
+const IGNORE_CATEGORIES: [usize; 15] = [4, 17, 24, 42, 43, 48, 50, 57, 58, 62, 63, 63, 66, 77, 78];
+
 impl RebrickableDB for LocalDB {
     fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>> {
         self.parts.get(id).map(Cow::Borrowed)
@@ -188,14 +190,39 @@ impl RebrickableDB for LocalDB {
         self.parts
             .iter()
             .filter_map(|(k, v)| {
-                if [4, 17, 24, 42, 43, 48, 50, 57, 58, 62, 63, 63, 66, 77, 78]
-                    .contains(&v.part_record.part_cat_id)
-                {
+                if IGNORE_CATEGORIES.contains(&v.part_record.part_cat_id) {
                     return None;
                 }
                 Some(k)
             })
             .map(Cow::Borrowed)
+    }
+
+    fn iter_part_name(&self) -> impl Iterator<Item = Cow<PartName>> {
+        self.parts
+            .values()
+            .filter_map(|v| {
+                if IGNORE_CATEGORIES.contains(&v.part_record.part_cat_id) {
+                    return None;
+                }
+                Some(&v.part_record.name)
+            })
+            .map(Cow::Borrowed)
+    }
+
+    fn iter_color_id(&self) -> impl Iterator<Item = Cow<ColorId>> {
+        self.colors.keys().map(Cow::Borrowed)
+    }
+
+    fn iter_color_name(&self) -> impl Iterator<Item = Cow<ColorName>> {
+        self.colors
+            .values()
+            .map(|v| &v.color_record.name)
+            .map(Cow::Borrowed)
+    }
+
+    fn iter_element_id(&self) -> impl Iterator<Item = Cow<ElementId>> {
+        self.elements.keys().map(Cow::Borrowed)
     }
 }
 

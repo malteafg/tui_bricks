@@ -1,6 +1,8 @@
 use rebrickable_database_api::*;
 
-use rebrickable_server_api::query::{ColorGetType, GetItem, ItemType, PartGetType, Query};
+use rebrickable_server_api::query::{
+    ColorFindType, ColorGetType, FindItem, GetItem, PartFindType, PartGetType, Query,
+};
 use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
 use utils::TcpExt;
 
@@ -166,13 +168,85 @@ impl RebrickableDB for ClientDB {
 
     fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>> {
         let query = Query::Find {
-            item_type: ItemType::Part,
+            find_item: FindItem::Part {
+                part: PartFindType::Id,
+            },
         };
         self.stream.borrow_mut().send(query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
         iter.map(|element| match element {
             IterItemsResponse::PartId(part_id) => Cow::Owned(part_id),
+            response_iter => {
+                eprintln!("ResponseIter: {:#?}", response_iter);
+                panic!();
+            }
+        })
+    }
+
+    fn iter_part_name(&self) -> impl Iterator<Item = Cow<PartName>> {
+        let query = Query::Find {
+            find_item: FindItem::Part {
+                part: PartFindType::Name,
+            },
+        };
+        self.stream.borrow_mut().send(query).unwrap();
+        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+
+        iter.map(|element| match element {
+            IterItemsResponse::PartName(part_name) => Cow::Owned(part_name),
+            response_iter => {
+                eprintln!("ResponseIter: {:#?}", response_iter);
+                panic!();
+            }
+        })
+    }
+
+    fn iter_color_id(&self) -> impl Iterator<Item = Cow<ColorId>> {
+        let query = Query::Find {
+            find_item: FindItem::Color {
+                color: ColorFindType::Id,
+            },
+        };
+        self.stream.borrow_mut().send(query).unwrap();
+        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+
+        iter.map(|element| match element {
+            IterItemsResponse::ColorId(color_id) => Cow::Owned(color_id),
+            response_iter => {
+                eprintln!("ResponseIter: {:#?}", response_iter);
+                panic!();
+            }
+        })
+    }
+
+    fn iter_color_name(&self) -> impl Iterator<Item = Cow<ColorName>> {
+        let query = Query::Find {
+            find_item: FindItem::Color {
+                color: ColorFindType::Name,
+            },
+        };
+        self.stream.borrow_mut().send(query).unwrap();
+        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+
+        iter.map(|element| match element {
+            IterItemsResponse::ColorName(color_name) => Cow::Owned(color_name),
+            response_iter => {
+                eprintln!("ResponseIter: {:#?}", response_iter);
+                panic!();
+            }
+        })
+    }
+
+    fn iter_element_id(&self) -> impl Iterator<Item = Cow<ElementId>> {
+        let query = Query::Find {
+            find_item: FindItem::Element,
+        };
+        self.stream.borrow_mut().send(query).unwrap();
+        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+
+        iter.map(|element| match element {
+            IterItemsResponse::ElementId(element_id) => Cow::Owned(element_id),
             response_iter => {
                 eprintln!("ResponseIter: {:#?}", response_iter);
                 panic!();

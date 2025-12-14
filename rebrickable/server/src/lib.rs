@@ -7,7 +7,9 @@ use std::time::Duration;
 
 use rebrickable_database::LocalDB;
 use rebrickable_database_api::RebrickableDB;
-use rebrickable_server_api::query::{ColorGetType, GetItem, ItemType, PartGetType, Query};
+use rebrickable_server_api::query::{
+    ColorFindType, ColorGetType, FindItem, GetItem, PartFindType, PartGetType, Query,
+};
 use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
 use utils::TcpExt;
 
@@ -82,17 +84,47 @@ impl<D> ClientHandler<D> {
                 };
                 self.stream.send(Response::GetItem(response, get_item))
             }
-            Query::Find { item_type } => {
+            Query::Find { find_item: item_type } => {
                 match item_type {
-                    ItemType::Part => {
-                        for id in self.database.iter_part_id() {
+                    FindItem::Part { part } => match part {
+                        PartFindType::Id => {
+                            for id in self.database.iter_part_id() {
+                                self.stream.send(Response::IterItems(Some(
+                                    IterItemsResponse::PartId(id.into_owned()),
+                                )))?;
+                            }
+                        }
+                        PartFindType::Name => {
+                            for name in self.database.iter_part_name() {
+                                self.stream.send(Response::IterItems(Some(
+                                    IterItemsResponse::PartName(name.into_owned()),
+                                )))?;
+                            }
+                        }
+                    },
+                    FindItem::Color { color } => match color {
+                        ColorFindType::Id => {
+                            for id in self.database.iter_color_id() {
+                                self.stream.send(Response::IterItems(Some(
+                                    IterItemsResponse::ColorId(id.into_owned()),
+                                )))?;
+                            }
+                        }
+                        ColorFindType::Name => {
+                            for name in self.database.iter_color_name() {
+                                self.stream.send(Response::IterItems(Some(
+                                    IterItemsResponse::ColorName(name.into_owned()),
+                                )))?;
+                            }
+                        }
+                    },
+                    FindItem::Element => {
+                        for id in self.database.iter_element_id() {
                             self.stream.send(Response::IterItems(Some(
-                                IterItemsResponse::PartId(id.into_owned()),
+                                IterItemsResponse::ElementId(id.into_owned()),
                             )))?;
                         }
                     }
-                    ItemType::Color => unimplemented!(),
-                    ItemType::Element => unimplemented!(),
                 }
                 self.stream.send(Response::IterItems(None))
             }
