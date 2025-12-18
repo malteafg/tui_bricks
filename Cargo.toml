@@ -7,7 +7,7 @@ members = [
   "rebrickable/database",
   "rebrickable/database_api",
   "rebrickable/server",
-  "rebrickable/server_api",
+  "rebrickable/server_api", "tui_bricks2",
 ]
 default-members = [
   "tui_bricks",

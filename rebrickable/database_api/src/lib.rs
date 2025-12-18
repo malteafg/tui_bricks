@@ -253,23 +253,23 @@ pub struct Category {
 }
 
 pub trait RebrickableDB {
-    fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>>;
+    fn part_from_id(&self, id: &PartId) -> Option<Cow<'_, Part>>;
 
-    fn part_from_name(&self, name: &PartName) -> Option<Cow<Part>>;
+    fn part_from_name(&self, name: &PartName) -> Option<Cow<'_, Part>>;
 
-    fn color_from_id(&self, id: &ColorId) -> Option<Cow<Color>>;
+    fn color_from_id(&self, id: &ColorId) -> Option<Cow<'_, Color>>;
 
-    fn color_from_name(&self, name: &ColorName) -> Option<Cow<Color>>;
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<'_, Color>>;
 
-    fn element_from_id(&self, id: &ElementId) -> Option<Cow<Element>>;
+    fn element_from_id(&self, id: &ElementId) -> Option<Cow<'_, Element>>;
 
-    fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>>;
+    fn iter_part_id(&self) -> impl Iterator<Item = Cow<'_, PartId>>;
 
-    fn iter_part_name(&self) -> impl Iterator<Item = Cow<PartName>>;
+    fn iter_part_name(&self) -> impl Iterator<Item = Cow<'_, PartName>>;
 
-    fn iter_color_id(&self) -> impl Iterator<Item = Cow<ColorId>>;
+    fn iter_color_id(&self) -> impl Iterator<Item = Cow<'_, ColorId>>;
 
-    fn iter_color_name(&self) -> impl Iterator<Item = Cow<ColorName>>;
+    fn iter_color_name(&self) -> impl Iterator<Item = Cow<'_, ColorName>>;
 
-    fn iter_element_id(&self) -> impl Iterator<Item = Cow<ElementId>>;
+    fn iter_element_id(&self) -> impl Iterator<Item = Cow<'_, ElementId>>;
 }

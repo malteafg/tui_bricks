@@ -164,29 +164,29 @@ impl Default for LocalDB {
 const IGNORE_CATEGORIES: [usize; 15] = [4, 17, 24, 42, 43, 48, 50, 57, 58, 62, 63, 63, 66, 77, 78];
 
 impl RebrickableDB for LocalDB {
-    fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>> {
+    fn part_from_id(&self, id: &PartId) -> Option<Cow<'_, Part>> {
         self.parts.get(id).map(Cow::Borrowed)
     }
 
-    fn part_from_name(&self, name: &PartName) -> Option<Cow<Part>> {
+    fn part_from_name(&self, name: &PartName) -> Option<Cow<'_, Part>> {
         let part_id = self.name_to_part_id.get(name)?;
         self.parts.get(part_id).map(Cow::Borrowed)
     }
 
-    fn color_from_id(&self, id: &ColorId) -> Option<Cow<Color>> {
+    fn color_from_id(&self, id: &ColorId) -> Option<Cow<'_, Color>> {
         self.colors.get(id).map(Cow::Borrowed)
     }
 
-    fn color_from_name(&self, name: &ColorName) -> Option<Cow<Color>> {
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<'_, Color>> {
         let color_id = self.name_to_color_id.get(name)?;
         self.colors.get(color_id).map(Cow::Borrowed)
     }
 
-    fn element_from_id(&self, id: &ElementId) -> Option<Cow<Element>> {
+    fn element_from_id(&self, id: &ElementId) -> Option<Cow<'_, Element>> {
         self.elements.get(id).map(Cow::Borrowed)
     }
 
-    fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>> {
+    fn iter_part_id(&self) -> impl Iterator<Item = Cow<'_, PartId>> {
         self.parts
             .iter()
             .filter_map(|(k, v)| {
@@ -198,7 +198,7 @@ impl RebrickableDB for LocalDB {
             .map(Cow::Borrowed)
     }
 
-    fn iter_part_name(&self) -> impl Iterator<Item = Cow<PartName>> {
+    fn iter_part_name(&self) -> impl Iterator<Item = Cow<'_, PartName>> {
         self.parts
             .values()
             .filter_map(|v| {
@@ -210,18 +210,18 @@ impl RebrickableDB for LocalDB {
             .map(Cow::Borrowed)
     }
 
-    fn iter_color_id(&self) -> impl Iterator<Item = Cow<ColorId>> {
+    fn iter_color_id(&self) -> impl Iterator<Item = Cow<'_, ColorId>> {
         self.colors.keys().map(Cow::Borrowed)
     }
 
-    fn iter_color_name(&self) -> impl Iterator<Item = Cow<ColorName>> {
+    fn iter_color_name(&self) -> impl Iterator<Item = Cow<'_, ColorName>> {
         self.colors
             .values()
             .map(|v| &v.color_record.name)
             .map(Cow::Borrowed)
     }
 
-    fn iter_element_id(&self) -> impl Iterator<Item = Cow<ElementId>> {
+    fn iter_element_id(&self) -> impl Iterator<Item = Cow<'_, ElementId>> {
         self.elements.keys().map(Cow::Borrowed)
     }
 }

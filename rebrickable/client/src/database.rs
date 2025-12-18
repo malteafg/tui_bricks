@@ -63,7 +63,7 @@ impl<'a, T> Iterator for ResponseIter<'a, T> {
 }
 
 impl RebrickableDB for ClientDB {
-    fn part_from_id(&self, id: &PartId) -> Option<Cow<Part>> {
+    fn part_from_id(&self, id: &PartId) -> Option<Cow<'_, Part>> {
         let query = Query::Get {
             get_item: GetItem::Part {
                 part: PartGetType::Id { id: id.clone() },
@@ -84,7 +84,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn part_from_name(&self, name: &PartName) -> Option<Cow<Part>> {
+    fn part_from_name(&self, name: &PartName) -> Option<Cow<'_, Part>> {
         let query = Query::Get {
             get_item: GetItem::Part {
                 part: PartGetType::Name { name: name.clone() },
@@ -105,7 +105,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn color_from_id(&self, id: &ColorId) -> Option<Cow<Color>> {
+    fn color_from_id(&self, id: &ColorId) -> Option<Cow<'_, Color>> {
         let query = Query::Get {
             get_item: GetItem::Color {
                 color: ColorGetType::Id { id: id.clone() },
@@ -126,7 +126,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn color_from_name(&self, name: &ColorName) -> Option<Cow<Color>> {
+    fn color_from_name(&self, name: &ColorName) -> Option<Cow<'_, Color>> {
         let query = Query::Get {
             get_item: GetItem::Color {
                 color: ColorGetType::Name { name: name.clone() },
@@ -147,7 +147,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn element_from_id(&self, id: &ElementId) -> Option<Cow<Element>> {
+    fn element_from_id(&self, id: &ElementId) -> Option<Cow<'_, Element>> {
         let query = Query::Get {
             get_item: GetItem::Element { id: id.clone() },
         };
@@ -166,7 +166,7 @@ impl RebrickableDB for ClientDB {
         }
     }
 
-    fn iter_part_id(&self) -> impl Iterator<Item = Cow<PartId>> {
+    fn iter_part_id(&self) -> impl Iterator<Item = Cow<'_, PartId>> {
         let query = Query::Find {
             find_item: FindItem::Part {
                 part: PartFindType::Id,
@@ -184,7 +184,7 @@ impl RebrickableDB for ClientDB {
         })
     }
 
-    fn iter_part_name(&self) -> impl Iterator<Item = Cow<PartName>> {
+    fn iter_part_name(&self) -> impl Iterator<Item = Cow<'_, PartName>> {
         let query = Query::Find {
             find_item: FindItem::Part {
                 part: PartFindType::Name,
@@ -202,7 +202,7 @@ impl RebrickableDB for ClientDB {
         })
     }
 
-    fn iter_color_id(&self) -> impl Iterator<Item = Cow<ColorId>> {
+    fn iter_color_id(&self) -> impl Iterator<Item = Cow<'_, ColorId>> {
         let query = Query::Find {
             find_item: FindItem::Color {
                 color: ColorFindType::Id,
@@ -220,7 +220,7 @@ impl RebrickableDB for ClientDB {
         })
     }
 
-    fn iter_color_name(&self) -> impl Iterator<Item = Cow<ColorName>> {
+    fn iter_color_name(&self) -> impl Iterator<Item = Cow<'_, ColorName>> {
         let query = Query::Find {
             find_item: FindItem::Color {
                 color: ColorFindType::Name,
@@ -238,7 +238,7 @@ impl RebrickableDB for ClientDB {
         })
     }
 
-    fn iter_element_id(&self) -> impl Iterator<Item = Cow<ElementId>> {
+    fn iter_element_id(&self) -> impl Iterator<Item = Cow<'_, ElementId>> {
         let query = Query::Find {
             find_item: FindItem::Element,
         };

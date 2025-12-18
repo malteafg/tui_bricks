@@ -27,10 +27,27 @@ fn write_iter(mut writer: impl Write, iter: impl Iterator<Item = impl Display>) 
 pub fn run_fzf<D: RebrickableDB>(database: &D, find_item: FindItem) {
     let dst_path = PathBuf::cache_dir().join("displayed_image.png");
     let images_path = PathBuf::data_dir().join("part_images");
+    let sub_cmd = match find_item {
+        FindItem::Part {
+            part: PartFindType::Id,
+        } => "part id",
+        FindItem::Part {
+            part: PartFindType::Name,
+        } => "part name",
+        FindItem::Color {
+            color: ColorFindType::Id,
+        } => "color id",
+        FindItem::Color {
+            color: ColorFindType::Name,
+        } => "color name",
+        FindItem::Element => "element",
+    };
+
     let update_image_cmd = format!(
-        "tui_bricks_update_image {{}} --dst-path=\"{}\" --images-path=\"{}\"",
+        "tui_bricks_update_image --dst-path=\"{}\" --images-path=\"{}\" {} {{}}",
         dst_path.display(),
-        images_path.display()
+        images_path.display(),
+        sub_cmd,
     );
 
     let mut child = Command::new("fzf")
@@ -69,6 +86,11 @@ pub fn run_fzf<D: RebrickableDB>(database: &D, find_item: FindItem) {
 
     let output = child.wait_with_output().unwrap();
     let selected_key = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    
+    if selected_key.is_empty() {
+        println!("No key selected");
+        return;
+    }
 
     match find_item {
         FindItem::Part {

@@ -7,5 +7,6 @@ edition = "2024"
 utils = { workspace = true }
 rebrickable_client = { workspace = true }
 rebrickable_database_api = { workspace = true }
+rebrickable_server_api = { workspace = true }
 
 clap = { workspace = true }
