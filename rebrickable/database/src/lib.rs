@@ -35,7 +35,7 @@ impl LocalDB {
         for rec in get_csv_reader(categories_path).unwrap().deserialize() {
             let rec: CategoryRecord = rec.unwrap();
             categories.insert(
-                rec.id.clone(),
+                rec.id,
                 Category {
                     category_record: rec,
                     parts: HashSet::new(),
