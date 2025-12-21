@@ -416,7 +416,7 @@ impl Database {
     pub fn get_items_at_location<'a>(
         &'a self,
         loc: &str,
-    ) -> impl Iterator<Item = LocSearch> + Clone + 'a {
+    ) -> impl Iterator<Item = LocSearch<'a>> + Clone + 'a {
         let loc = loc.to_string();
         self.raw_data.iter().filter_map(move |item| {
             let mut color_groups = Vec::new();
