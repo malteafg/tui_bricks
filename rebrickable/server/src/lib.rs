@@ -58,26 +58,26 @@ impl<D> ClientHandler<D> {
             Query::Get { get_item } => {
                 let response = match &get_item {
                     GetItem::Part { part } => match part {
-                        PartGetType::Id { id } => match self.database.part_from_id(&id) {
+                        PartGetType::Id { id } => match self.database.part_from_id(id) {
                             Some(part) => GetItemResponse::Part(part.into_owned()),
                             None => GetItemResponse::NotFound,
                         },
-                        PartGetType::Name { name } => match self.database.part_from_name(&name) {
+                        PartGetType::Name { name } => match self.database.part_from_name(name) {
                             Some(part) => GetItemResponse::Part(part.into_owned()),
                             None => GetItemResponse::NotFound,
                         },
                     },
                     GetItem::Color { color } => match color {
-                        ColorGetType::Id { id } => match self.database.color_from_id(&id) {
+                        ColorGetType::Id { id } => match self.database.color_from_id(id) {
                             Some(color) => GetItemResponse::Color(color.into_owned()),
                             None => GetItemResponse::NotFound,
                         },
-                        ColorGetType::Name { name } => match self.database.color_from_name(&name) {
+                        ColorGetType::Name { name } => match self.database.color_from_name(name) {
                             Some(color) => GetItemResponse::Color(color.into_owned()),
                             None => GetItemResponse::NotFound,
                         },
                     },
-                    GetItem::Element { id } => match self.database.element_from_id(&id) {
+                    GetItem::Element { id } => match self.database.element_from_id(id) {
                         Some(element) => GetItemResponse::Element(element.into_owned()),
                         None => GetItemResponse::NotFound,
                     },
