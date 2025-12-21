@@ -19,7 +19,10 @@ fn write_iter(mut writer: impl Write, iter: impl Iterator<Item = impl Display>) 
                 eprintln!("fzf exited early (Broken pipe), stopping write loop");
                 break;
             }
-            Err(e) => return Err(Box::new(e)).unwrap(),
+            Err(e) => {
+                eprintln!("{}", e);
+                break;
+            }
         }
     }
 }
@@ -57,7 +60,7 @@ pub fn run_fzf<D: RebrickableDB>(database: &D, find_item: FindItem) {
         //     update_image_cmd
         // ))
         // .arg("--preview=(echo {})")
-        .arg(&format!("--preview=({})", update_image_cmd))
+        .arg(format!("--preview=({})", update_image_cmd))
         .arg("--preview-window=up:30%:wrap")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -86,7 +89,7 @@ pub fn run_fzf<D: RebrickableDB>(database: &D, find_item: FindItem) {
 
     let output = child.wait_with_output().unwrap();
     let selected_key = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    
+
     if selected_key.is_empty() {
         println!("No key selected");
         return;

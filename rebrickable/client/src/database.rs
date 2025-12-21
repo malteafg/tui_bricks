@@ -108,7 +108,7 @@ impl RebrickableDB for ClientDB {
     fn color_from_id(&self, id: &ColorId) -> Option<Cow<'_, Color>> {
         let query = Query::Get {
             get_item: GetItem::Color {
-                color: ColorGetType::Id { id: id.clone() },
+                color: ColorGetType::Id { id: *id },
             },
         };
         let response = self.send_and_receive(query);
@@ -149,7 +149,7 @@ impl RebrickableDB for ClientDB {
 
     fn element_from_id(&self, id: &ElementId) -> Option<Cow<'_, Element>> {
         let query = Query::Get {
-            get_item: GetItem::Element { id: id.clone() },
+            get_item: GetItem::Element { id: *id },
         };
         let response = self.send_and_receive(query);
         let Ok(response) = response else {
