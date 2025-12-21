@@ -23,13 +23,7 @@ impl PartId {
         if !self.starts_with(|c: char| c.is_ascii_digit()) {
             return None;
         }
-
-        let index = self.find(|c: char| !c.is_ascii_digit());
-
-        let Some(index) = index else {
-            return None;
-        };
-
+        let index = self.find(|c: char| !c.is_ascii_digit())?;
         Some(self[0..index].to_string().into())
     }
 }
@@ -169,7 +163,7 @@ impl Display for Part {
         }
         write!(f, "Color variations: {} unique colors:", self.colors.len())?;
         for (color_name, elements_ids) in &self.colors {
-            writeln!(f, "")?;
+            writeln!(f)?;
             write!(f, "    {}, {:?}", color_name, elements_ids)?;
         }
         Ok(())
