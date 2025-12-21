@@ -49,14 +49,14 @@ fn try_copy_image(
     }
 
     if let Some(trimmed) = part_id.trim_id() {
-        let path = image_path(&base_path, &*trimmed);
+        let path = image_path(base_path, &*trimmed);
         if fs::exists(&path).unwrap() {
             fs::copy(&path, &dst_path).unwrap();
             return true;
         }
     }
 
-    return false;
+    false
 }
 
 fn try_copy_part_image(part: &Part, base_path: impl AsRef<Path>, dst_path: impl AsRef<Path>) {
@@ -65,7 +65,7 @@ fn try_copy_part_image(part: &Part, base_path: impl AsRef<Path>, dst_path: impl 
     }
 
     for parent_part in part.parent_rels.keys() {
-        if try_copy_image(&base_path, &parent_part, &dst_path) {
+        if try_copy_image(&base_path, parent_part, &dst_path) {
             return;
         }
     }
