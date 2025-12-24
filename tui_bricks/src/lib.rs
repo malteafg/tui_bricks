@@ -1,5 +1,3 @@
-extern crate log;
-
 mod cmd;
 mod data;
 pub mod error;
@@ -30,7 +28,6 @@ fn get_user_db_path() -> error::Result<std::path::PathBuf> {
 }
 
 pub fn run() -> error::Result<()> {
-    env_logger::init();
     let mut w = std::io::stdout();
 
     #[cfg(not(debug_assertions))]

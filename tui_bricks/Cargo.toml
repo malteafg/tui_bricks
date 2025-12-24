@@ -14,9 +14,7 @@ strum = { version = "0.26", features = ["derive"] }
 
 webbrowser = "0.8.12"
 
-directories = "5.0"
+directories = { workspace = true }
 figment = { version = "0.10.10", features = ["yaml"] }
 
 thiserror = "1.0"
-log = "0.4"
-env_logger = "0.11"

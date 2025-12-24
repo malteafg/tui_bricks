@@ -1,5 +1,4 @@
 pub use bincode::{BorrowDecode, Decode, Encode};
-pub use paste::paste;
 
 #[macro_export]
 macro_rules! strong_type {
