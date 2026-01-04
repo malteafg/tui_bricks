@@ -1,5 +1,5 @@
 #[cfg(not(debug_assertions))]
-use directories_next::ProjectDirs;
+use directories::ProjectDirs;
 
 use std::path::PathBuf;
 

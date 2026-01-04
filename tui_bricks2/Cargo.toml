@@ -5,4 +5,9 @@ edition = "2024"
 
 [dependencies]
 term_lib = { path = "../../term_lib/" }
+
+rebrickable_database_api = { workspace = true }
+rebrickable_database = { workspace = true }
+rebrickable_client = { workspace = true }
+
 serde = { workspace = true }

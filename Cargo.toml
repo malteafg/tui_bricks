@@ -24,6 +24,8 @@ rebrickable_database_api = { path = "rebrickable/database_api" }
 rebrickable_server = { path = "rebrickable/server" }
 rebrickable_server_api = { path = "rebrickable/server_api" }
 
+term_lib = { path = "../term_lib/" }
+
 clap = { version = "4.5.*", features = ["derive"] }
 directories = "6.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
@@ -31,3 +33,4 @@ bincode = { version = "2.0.*", features = ["derive"] }
 csv = { version = "1.4.*" }
 rstest = { version = "0.26.*" }
 ctrlc = { version = "3.0.*" }
+thiserror = { version = "2.0.*" }

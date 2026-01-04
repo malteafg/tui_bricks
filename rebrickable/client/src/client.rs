@@ -52,6 +52,7 @@ pub fn run_fzf<D: RebrickableDB>(database: &D, find_item: FindItem) {
         images_path.display(),
         sub_cmd,
     );
+    dbg!(&update_image_cmd);
 
     let mut child = Command::new("fzf")
         // .arg("--bind=focus:execute(sh -c '[ -f ../raw_data/parts_red/{}.png ] && cp ../raw_data/parts_red/{}.png ../raw_data/test_image.png' sh {})")

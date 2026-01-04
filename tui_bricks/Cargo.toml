@@ -6,7 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-term_lib = { path = "../../term_lib/" }
+term_lib = { workspace = true }
 
 serde = { workspace = true }
 serde_yaml = "0.9"
@@ -17,4 +17,4 @@ webbrowser = "0.8.12"
 directories = { workspace = true }
 figment = { version = "0.10.10", features = ["yaml"] }
 
-thiserror = "1.0"
+thiserror = { workspace = true }

@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    tui_bricks2::run();
 }
