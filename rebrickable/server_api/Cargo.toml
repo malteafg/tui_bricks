@@ -9,4 +9,4 @@ rebrickable_database_api = { workspace = true }
 
 serde = { workspace = true }
 bincode = { workspace = true }
-clap = { workspace = true }
+derive_more = { workspace = true }

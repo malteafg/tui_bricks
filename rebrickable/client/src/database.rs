@@ -1,8 +1,6 @@
 use rebrickable_database_api::*;
 
-use rebrickable_server_api::query::{
-    ColorFindType, ColorGetType, FindItem, GetItem, PartFindType, PartGetType, Query,
-};
+use rebrickable_server_api::query::{FindItem, Query};
 use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
 use utils::TcpExt;
 
@@ -64,11 +62,7 @@ impl<'a, T> Iterator for ResponseIter<'a, T> {
 
 impl RebrickableDB for ClientDB {
     fn part_from_id(&self, id: &PartId) -> Option<Cow<'_, Part>> {
-        let query = Query::Get {
-            get_item: GetItem::Part {
-                part: PartGetType::Id { id: id.clone() },
-            },
-        };
+        let query = Query::from(id.clone());
         let response = self.send_and_receive(query);
         let Ok(response) = response else {
             return None;
@@ -85,11 +79,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn part_from_name(&self, name: &PartName) -> Option<Cow<'_, Part>> {
-        let query = Query::Get {
-            get_item: GetItem::Part {
-                part: PartGetType::Name { name: name.clone() },
-            },
-        };
+        let query = Query::from(name.clone());
         let response = self.send_and_receive(query);
         let Ok(response) = response else {
             return None;
@@ -106,11 +96,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn color_from_id(&self, id: &ColorId) -> Option<Cow<'_, Color>> {
-        let query = Query::Get {
-            get_item: GetItem::Color {
-                color: ColorGetType::Id { id: *id },
-            },
-        };
+        let query = Query::from(*id);
         let response = self.send_and_receive(query);
         let Ok(response) = response else {
             return None;
@@ -127,11 +113,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn color_from_name(&self, name: &ColorName) -> Option<Cow<'_, Color>> {
-        let query = Query::Get {
-            get_item: GetItem::Color {
-                color: ColorGetType::Name { name: name.clone() },
-            },
-        };
+        let query = Query::from(name.clone());
         let response = self.send_and_receive(query);
         let Ok(response) = response else {
             return None;
@@ -148,9 +130,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn element_from_id(&self, id: &ElementId) -> Option<Cow<'_, Element>> {
-        let query = Query::Get {
-            get_item: GetItem::Element { id: *id },
-        };
+        let query = Query::from(*id);
         let response = self.send_and_receive(query);
         let Ok(response) = response else {
             return None;
@@ -167,11 +147,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn iter_part_id(&self) -> impl Iterator<Item = Cow<'_, PartId>> {
-        let query = Query::Find {
-            find_item: FindItem::Part {
-                part: PartFindType::Id,
-            },
-        };
+        let query = Query::Find(FindItem::PartId);
         self.stream.borrow_mut().send(query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
@@ -185,11 +161,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn iter_part_name(&self) -> impl Iterator<Item = Cow<'_, PartName>> {
-        let query = Query::Find {
-            find_item: FindItem::Part {
-                part: PartFindType::Name,
-            },
-        };
+        let query = Query::Find(FindItem::PartName);
         self.stream.borrow_mut().send(query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
@@ -203,11 +175,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn iter_color_id(&self) -> impl Iterator<Item = Cow<'_, ColorId>> {
-        let query = Query::Find {
-            find_item: FindItem::Color {
-                color: ColorFindType::Id,
-            },
-        };
+        let query = Query::Find(FindItem::ColorId);
         self.stream.borrow_mut().send(query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
@@ -221,11 +189,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn iter_color_name(&self) -> impl Iterator<Item = Cow<'_, ColorName>> {
-        let query = Query::Find {
-            find_item: FindItem::Color {
-                color: ColorFindType::Name,
-            },
-        };
+        let query = Query::Find(FindItem::ColorName);
         self.stream.borrow_mut().send(query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
@@ -239,9 +203,7 @@ impl RebrickableDB for ClientDB {
     }
 
     fn iter_element_id(&self) -> impl Iterator<Item = Cow<'_, ElementId>> {
-        let query = Query::Find {
-            find_item: FindItem::Element,
-        };
+        let query = Query::Find(FindItem::Element);
         self.stream.borrow_mut().send(query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 

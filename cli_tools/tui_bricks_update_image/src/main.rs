@@ -1,6 +1,6 @@
 use rebrickable_client::ClientDB;
+use rebrickable_client::cli::{ColorGetType, GetItem, PartGetType};
 use rebrickable_database_api::{Part, PartId, RebrickableDB};
-use rebrickable_server_api::query::{ColorGetType, GetItem, PartGetType};
 use utils::{DisplayShortExt, PathExt};
 
 use clap::Parser;

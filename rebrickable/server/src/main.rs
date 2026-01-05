@@ -1,17 +1,16 @@
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::atomic::Ordering;
 
 fn main() -> std::io::Result<()> {
-    let running = Arc::new(AtomicBool::new(true));
-    let _ = rebrickable_server::RebrickableServer::start_with_arc(Arc::clone(&running))?;
+    let mut server = rebrickable_server::RebrickableServer::start()?;
+    let running = server.clone_stop_handle();
     ctrlc::set_handler(move || {
         println!("Ctrl+C received, shutting down...");
-        running.store(true, std::sync::atomic::Ordering::SeqCst);
-        std::process::exit(0);
+        running.store(false, Ordering::SeqCst);
     })
     .expect("failed to set Ctrl+C handler");
 
-    println!("Press Ctrl+C to stop");
-    loop {
-        std::thread::park();
-    }
+    println!("Press Ctrl+C to stop the server");
+
+    server.join();
+    Ok(())
 }

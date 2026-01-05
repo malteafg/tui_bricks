@@ -34,3 +34,4 @@ csv = { version = "1.4.*" }
 rstest = { version = "0.26.*" }
 ctrlc = { version = "3.0.*" }
 thiserror = { version = "2.0.*" }
+derive_more = { version = "2.1.*", features = ["from"] }
