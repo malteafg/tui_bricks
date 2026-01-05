@@ -5,4 +5,4 @@ mod tcp_ext;
 
 pub use display_short::{DisplayShort, DisplayShortExt};
 pub use path_ext::PathExt;
-pub use tcp_ext::TcpExt;
+pub use tcp_ext::{TcpError, TcpExt};

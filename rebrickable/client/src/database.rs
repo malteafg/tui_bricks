@@ -2,7 +2,7 @@ use rebrickable_database_api::*;
 
 use rebrickable_server_api::query::{FindItem, Query};
 use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
-use utils::TcpExt;
+use utils::{TcpError, TcpExt};
 
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -22,8 +22,8 @@ impl ClientDB {
         })
     }
 
-    fn send_and_receive(&self, query: Query) -> Result<Response, Error> {
-        self.stream.borrow_mut().send_and_receive(query)
+    fn send_and_receive(&self, query: Query) -> Result<Response, TcpError> {
+        self.stream.borrow_mut().send_and_receive(&query)
     }
 }
 
@@ -148,7 +148,7 @@ impl RebrickableDB for ClientDB {
 
     fn iter_part_id(&self) -> impl Iterator<Item = Cow<'_, PartId>> {
         let query = Query::Find(FindItem::PartId);
-        self.stream.borrow_mut().send(query).unwrap();
+        self.stream.borrow_mut().send(&query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
         iter.map(|element| match element {
@@ -162,7 +162,7 @@ impl RebrickableDB for ClientDB {
 
     fn iter_part_name(&self) -> impl Iterator<Item = Cow<'_, PartName>> {
         let query = Query::Find(FindItem::PartName);
-        self.stream.borrow_mut().send(query).unwrap();
+        self.stream.borrow_mut().send(&query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
         iter.map(|element| match element {
@@ -176,7 +176,7 @@ impl RebrickableDB for ClientDB {
 
     fn iter_color_id(&self) -> impl Iterator<Item = Cow<'_, ColorId>> {
         let query = Query::Find(FindItem::ColorId);
-        self.stream.borrow_mut().send(query).unwrap();
+        self.stream.borrow_mut().send(&query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
         iter.map(|element| match element {
@@ -190,7 +190,7 @@ impl RebrickableDB for ClientDB {
 
     fn iter_color_name(&self) -> impl Iterator<Item = Cow<'_, ColorName>> {
         let query = Query::Find(FindItem::ColorName);
-        self.stream.borrow_mut().send(query).unwrap();
+        self.stream.borrow_mut().send(&query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
         iter.map(|element| match element {
@@ -204,7 +204,7 @@ impl RebrickableDB for ClientDB {
 
     fn iter_element_id(&self) -> impl Iterator<Item = Cow<'_, ElementId>> {
         let query = Query::Find(FindItem::Element);
-        self.stream.borrow_mut().send(query).unwrap();
+        self.stream.borrow_mut().send(&query).unwrap();
         let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
 
         iter.map(|element| match element {

@@ -1,5 +1,3 @@
-pub use bincode::{BorrowDecode, Decode, Encode};
-
 #[macro_export]
 macro_rules! strong_type {
     (
@@ -15,10 +13,8 @@ macro_rules! strong_type {
             PartialOrd,
             Ord,
             Hash,
-            Serialize,
-            Deserialize,
-            Encode,
-            Decode,
+            serde::Serialize,
+            serde::Deserialize,
         )]
         pub struct $name($inner);
 

@@ -1,4 +1,3 @@
-use std::io::Error;
 use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, atomic::AtomicBool};
@@ -9,7 +8,7 @@ use rebrickable_database::LocalDB;
 use rebrickable_database_api::RebrickableDB;
 use rebrickable_server_api::query::{FindItem, GetItem, Query};
 use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
-use utils::TcpExt;
+use utils::{TcpError, TcpExt};
 
 struct ClientHandler<D: RebrickableDB> {
     stream: TcpStream,
@@ -45,7 +44,7 @@ impl<D: RebrickableDB> ClientHandler<D> {
         }
     }
 
-    fn handle_query(&mut self, query: Query) -> Result<(), Error> {
+    fn handle_query(&mut self, query: Query) -> Result<(), TcpError> {
         match query {
             Query::Get(get_item) => {
                 let response = match &get_item {
@@ -70,48 +69,48 @@ impl<D: RebrickableDB> ClientHandler<D> {
                         None => GetItemResponse::NotFound,
                     },
                 };
-                self.stream.send(Response::GetItem(response, get_item))
+                self.stream.send(&Response::GetItem(response, get_item))
             }
             Query::Find(item_type) => {
                 match item_type {
                     FindItem::PartId => {
                         for id in self.database.iter_part_id() {
                             std::thread::sleep(Duration::from_millis(10));
-                            self.stream.send(Response::IterItems(Some(
+                            self.stream.send(&Response::IterItems(Some(
                                 IterItemsResponse::PartId(id.into_owned()),
                             )))?;
                         }
                     }
                     FindItem::PartName => {
                         for name in self.database.iter_part_name() {
-                            self.stream.send(Response::IterItems(Some(
+                            self.stream.send(&Response::IterItems(Some(
                                 IterItemsResponse::PartName(name.into_owned()),
                             )))?;
                         }
                     }
                     FindItem::ColorId => {
                         for id in self.database.iter_color_id() {
-                            self.stream.send(Response::IterItems(Some(
+                            self.stream.send(&Response::IterItems(Some(
                                 IterItemsResponse::ColorId(id.into_owned()),
                             )))?;
                         }
                     }
                     FindItem::ColorName => {
                         for name in self.database.iter_color_name() {
-                            self.stream.send(Response::IterItems(Some(
+                            self.stream.send(&Response::IterItems(Some(
                                 IterItemsResponse::ColorName(name.into_owned()),
                             )))?;
                         }
                     }
                     FindItem::Element => {
                         for id in self.database.iter_element_id() {
-                            self.stream.send(Response::IterItems(Some(
+                            self.stream.send(&Response::IterItems(Some(
                                 IterItemsResponse::ElementId(id.into_owned()),
                             )))?;
                         }
                     }
                 }
-                self.stream.send(Response::IterItems(None))
+                self.stream.send(&Response::IterItems(None))
             }
         }
     }

@@ -29,7 +29,7 @@ term_lib = { path = "../term_lib/" }
 clap = { version = "4.5.*", features = ["derive"] }
 directories = "6.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
-bincode = { version = "2.0.*", features = ["derive"] }
+postcard = { version = "1.1.*", features = ["use-std"] }
 csv = { version = "1.4.*" }
 rstest = { version = "0.26.*" }
 ctrlc = { version = "3.0.*" }

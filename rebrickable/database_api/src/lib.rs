@@ -1,6 +1,5 @@
 use utils::DisplayShort;
 
-use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use std::{
@@ -28,9 +27,7 @@ impl PartId {
     }
 }
 
-#[derive(
-    Debug, Copy, Clone, Deserialize, Serialize, Encode, Decode, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RelationshipType {
     /// P
     Print,
@@ -48,12 +45,11 @@ pub enum RelationshipType {
 
 /// Records match the rebrickable CSV representation
 mod records {
-    use bincode::{Decode, Encode};
     use serde::{Deserialize, Deserializer, Serialize};
 
     use crate::RelationshipType;
 
-    #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct PartRecord {
         // Named part_num and not part_id, because this matches rebrickable CSV representation.
         pub part_num: super::PartId,
@@ -77,7 +73,7 @@ mod records {
         }
     }
 
-    #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct ColorRecord {
         pub id: super::ColorId,
         pub name: super::ColorName,
@@ -90,7 +86,7 @@ mod records {
         pub y2: Option<usize>,
     }
 
-    #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct ElementRecord {
         pub element_id: super::ElementId,
         pub part_num: super::PartId,
@@ -117,7 +113,7 @@ mod records {
         }
     }
 
-    #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct RelationshipRecord {
         #[serde(deserialize_with = "relationship_type_deserializer")]
         pub rel_type: super::RelationshipType,
@@ -125,7 +121,7 @@ mod records {
         pub parent_part_num: super::PartId,
     }
 
-    #[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+    #[derive(Debug, Clone, Deserialize, Serialize)]
     pub struct CategoryRecord {
         pub id: super::CategoryId,
         pub name: super::CategoryName,
@@ -134,7 +130,7 @@ mod records {
 
 pub use records::{CategoryRecord, ColorRecord, ElementRecord, PartRecord, RelationshipRecord};
 
-#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Part {
     pub part_record: PartRecord,
     pub colors: BTreeMap<ColorName, BTreeSet<ElementId>>,
@@ -184,7 +180,7 @@ impl DisplayShort for Part {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Color {
     pub color_record: ColorRecord,
 }
@@ -219,7 +215,7 @@ impl DisplayShort for Color {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Element {
     pub element_record: ElementRecord,
 }
@@ -240,7 +236,7 @@ impl DisplayShort for Element {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Encode, Decode)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Category {
     pub category_record: CategoryRecord,
     pub parts: HashSet<PartId>,

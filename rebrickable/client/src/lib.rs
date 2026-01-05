@@ -39,7 +39,7 @@ pub fn run(args: cli::Args) {
 
     let mut sxiv_path = PathBuf::cache_dir();
     sxiv_path.push("displayed_image.png");
-    let _ = Command::new("sxiv").arg(sxiv_path).spawn().unwrap();
+    let mut sxiv = Command::new("sxiv").arg(sxiv_path).spawn().unwrap();
 
     match ClientDB::new() {
         Ok(database) => client::handle_query(&database, query),
@@ -48,4 +48,6 @@ pub fn run(args: cli::Args) {
             client::handle_query(&database, query);
         }
     }
+
+    sxiv.kill().unwrap();
 }

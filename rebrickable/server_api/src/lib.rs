@@ -1,10 +1,10 @@
 pub mod query {
     use rebrickable_database_api::*;
 
-    use bincode::{Decode, Encode};
     use derive_more::From;
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Clone, Decode, Encode, From)]
+    #[derive(Debug, Clone, Serialize, Deserialize, From)]
     pub enum GetItem {
         PartFromId(PartId),
         PartFromName(PartName),
@@ -13,7 +13,7 @@ pub mod query {
         Element(ElementId),
     }
 
-    #[derive(Debug, Clone, Decode, Encode)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum FindItem {
         PartId,
         PartName,
@@ -22,7 +22,7 @@ pub mod query {
         Element,
     }
 
-    #[derive(Debug, Clone, Decode, Encode)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum Query {
         Get(GetItem),
         Find(FindItem),
@@ -38,10 +38,10 @@ pub mod query {
 pub mod response {
     use rebrickable_database_api::*;
 
-    use bincode::{Decode, Encode};
     use derive_more::From;
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Clone, Encode, Decode, From)]
+    #[derive(Debug, Clone, Serialize, Deserialize, From)]
     pub enum GetItemResponse {
         Part(Part),
         Color(Color),
@@ -49,7 +49,7 @@ pub mod response {
         NotFound,
     }
 
-    #[derive(Debug, Clone, Encode, Decode, From)]
+    #[derive(Debug, Clone, Serialize, Deserialize, From)]
     pub enum IterItemsResponse {
         PartId(PartId),
         PartName(PartName),
@@ -58,7 +58,7 @@ pub mod response {
         ElementId(ElementId),
     }
 
-    #[derive(Debug, Clone, Encode, Decode, From)]
+    #[derive(Debug, Clone, Serialize, Deserialize, From)]
     pub enum Response {
         GetItem(GetItemResponse, crate::query::GetItem),
         /// The Option is None once the stream has ended.
