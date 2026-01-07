@@ -33,6 +33,12 @@ pub mod query {
             Query::Get(value.into())
         }
     }
+
+    impl From<FindItem> for Query {
+        fn from(value: FindItem) -> Self {
+            Query::Find(value)
+        }
+    }
 }
 
 pub mod response {
@@ -58,10 +64,16 @@ pub mod response {
         ElementId(ElementId),
     }
 
-    #[derive(Debug, Clone, Serialize, Deserialize, From)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum Response {
         GetItem(GetItemResponse, crate::query::GetItem),
         /// The Option is None once the stream has ended.
         IterItems(Option<IterItemsResponse>),
+    }
+
+    impl<T: Into<IterItemsResponse>> From<T> for Response {
+        fn from(value: T) -> Self {
+            Response::IterItems(Some(value.into()))
+        }
     }
 }

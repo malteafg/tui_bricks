@@ -7,7 +7,7 @@ use std::time::Duration;
 use rebrickable_database::LocalDB;
 use rebrickable_database_api::RebrickableDB;
 use rebrickable_server_api::query::{FindItem, GetItem, Query};
-use rebrickable_server_api::response::{GetItemResponse, IterItemsResponse, Response};
+use rebrickable_server_api::response::{GetItemResponse, Response};
 use utils::{TcpError, TcpExt};
 
 struct ClientHandler<D: RebrickableDB> {
@@ -45,74 +45,117 @@ impl<D: RebrickableDB> ClientHandler<D> {
     }
 
     fn handle_query(&mut self, query: Query) -> Result<(), TcpError> {
-        match query {
-            Query::Get(get_item) => {
-                let response = match &get_item {
-                    GetItem::PartFromId(id) => match self.database.part_from_id(id) {
-                        Some(part) => GetItemResponse::Part(part.into_owned()),
-                        None => GetItemResponse::NotFound,
-                    },
-                    GetItem::PartFromName(name) => match self.database.part_from_name(name) {
-                        Some(part) => GetItemResponse::Part(part.into_owned()),
-                        None => GetItemResponse::NotFound,
-                    },
-                    GetItem::ColorFromId(id) => match self.database.color_from_id(id) {
-                        Some(color) => GetItemResponse::Color(color.into_owned()),
-                        None => GetItemResponse::NotFound,
-                    },
-                    GetItem::ColorFromName(name) => match self.database.color_from_name(name) {
-                        Some(color) => GetItemResponse::Color(color.into_owned()),
-                        None => GetItemResponse::NotFound,
-                    },
-                    GetItem::Element(id) => match self.database.element_from_id(id) {
-                        Some(element) => GetItemResponse::Element(element.into_owned()),
-                        None => GetItemResponse::NotFound,
-                    },
-                };
-                self.stream.send(&Response::GetItem(response, get_item))
-            }
-            Query::Find(item_type) => {
-                match item_type {
-                    FindItem::PartId => {
-                        for id in self.database.iter_part_id() {
-                            std::thread::sleep(Duration::from_millis(10));
-                            self.stream.send(&Response::IterItems(Some(
-                                IterItemsResponse::PartId(id.into_owned()),
-                            )))?;
+        let mut next_query: Option<Query> = Some(query);
+        while let Some(query) = next_query.take() {
+            dbg!(&query);
+            match query {
+                Query::Get(get_item) => {
+                    let response = match &get_item {
+                        GetItem::PartFromId(id) => match self.database.part_from_id(id) {
+                            Some(part) => GetItemResponse::Part(part.into_owned()),
+                            None => GetItemResponse::NotFound,
+                        },
+                        GetItem::PartFromName(name) => match self.database.part_from_name(name) {
+                            Some(part) => GetItemResponse::Part(part.into_owned()),
+                            None => GetItemResponse::NotFound,
+                        },
+                        GetItem::ColorFromId(id) => match self.database.color_from_id(id) {
+                            Some(color) => GetItemResponse::Color(color.into_owned()),
+                            None => GetItemResponse::NotFound,
+                        },
+                        GetItem::ColorFromName(name) => match self.database.color_from_name(name) {
+                            Some(color) => GetItemResponse::Color(color.into_owned()),
+                            None => GetItemResponse::NotFound,
+                        },
+                        GetItem::Element(id) => match self.database.element_from_id(id) {
+                            Some(element) => GetItemResponse::Element(element.into_owned()),
+                            None => GetItemResponse::NotFound,
+                        },
+                    };
+                    return self.stream.send(&Response::GetItem(response, get_item));
+                }
+                Query::Find(item_type) => {
+                    let mut count = 0;
+                    match item_type {
+                        FindItem::PartId => {
+                            for id in self.database.iter_part_id() {
+                                self.stream.send(&Response::from(id.into_owned()))?;
+
+                                count += 1;
+                                if count == 1000 {
+                                    count = 0;
+                                    next_query = self.stream.try_receive()?;
+                                    if next_query.is_some() {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        FindItem::PartName => {
+                            for name in self.database.iter_part_name() {
+                                self.stream.send(&Response::from(name.into_owned()))?;
+
+                                count += 1;
+                                if count == 1000 {
+                                    count = 0;
+                                    next_query = self.stream.try_receive()?;
+                                    if next_query.is_some() {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        FindItem::ColorId => {
+                            for id in self.database.iter_color_id() {
+                                self.stream.send(&Response::from(id.into_owned()))?;
+
+                                count += 1;
+                                if count == 1000 {
+                                    count = 0;
+                                    next_query = self.stream.try_receive()?;
+                                    if next_query.is_some() {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        FindItem::ColorName => {
+                            for name in self.database.iter_color_name() {
+                                self.stream.send(&Response::from(name.into_owned()))?;
+
+                                count += 1;
+                                if count == 1000 {
+                                    count = 0;
+                                    next_query = self.stream.try_receive()?;
+                                    if next_query.is_some() {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        FindItem::Element => {
+                            for id in self.database.iter_element_id() {
+                                self.stream.send(&Response::from(id.into_owned()))?;
+
+                                count += 1;
+                                if count == 1000 {
+                                    count = 0;
+                                    next_query = self.stream.try_receive()?;
+                                    if next_query.is_some() {
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
-                    FindItem::PartName => {
-                        for name in self.database.iter_part_name() {
-                            self.stream.send(&Response::IterItems(Some(
-                                IterItemsResponse::PartName(name.into_owned()),
-                            )))?;
-                        }
-                    }
-                    FindItem::ColorId => {
-                        for id in self.database.iter_color_id() {
-                            self.stream.send(&Response::IterItems(Some(
-                                IterItemsResponse::ColorId(id.into_owned()),
-                            )))?;
-                        }
-                    }
-                    FindItem::ColorName => {
-                        for name in self.database.iter_color_name() {
-                            self.stream.send(&Response::IterItems(Some(
-                                IterItemsResponse::ColorName(name.into_owned()),
-                            )))?;
-                        }
-                    }
-                    FindItem::Element => {
-                        for id in self.database.iter_element_id() {
-                            self.stream.send(&Response::IterItems(Some(
-                                IterItemsResponse::ElementId(id.into_owned()),
-                            )))?;
-                        }
+                    self.stream.send(&Response::IterItems(None))?;
+                    if next_query.is_none() {
+                        break;
                     }
                 }
-                self.stream.send(&Response::IterItems(None))
             }
         }
+        Ok(())
     }
 }
 

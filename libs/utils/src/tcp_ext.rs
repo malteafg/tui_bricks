@@ -17,22 +17,20 @@ pub enum TcpError {
 }
 
 pub trait TcpExt {
+    /// Sends the given type on the tcp stream.
     fn send<T: Serialize>(&mut self, value: &T) -> Result<(), TcpError>;
-
+    /// Blocks and waits for the specified type to be available in the stream.
     fn receive<T: for<'a> Deserialize<'a>>(&mut self) -> Result<T, TcpError>;
-
-    fn send_and_receive<T: Serialize, S: for<'a> Deserialize<'a>>(
+    /// Checks if there are any bytes available, and only if there is, blocks and waits for the
+    /// specified type to be available in the stream.
+    fn try_receive<T: for<'a> Deserialize<'a> + std::fmt::Debug>(
         &mut self,
-        value: &T,
-    ) -> Result<S, TcpError> {
-        self.send(value)?;
-        self.receive()
-    }
+    ) -> Result<Option<T>, TcpError>;
 }
 
 impl TcpExt for TcpStream {
     fn send<T: Serialize>(&mut self, value: &T) -> Result<(), TcpError> {
-        let data = postcard::to_stdvec(value).map_err(|e| TcpError::Serialize(e))?;
+        let data = postcard::to_stdvec(value).map_err(TcpError::Serialize)?;
 
         let len = (data.len() as u32).to_le_bytes();
         self.write_all(&len)?;
@@ -48,9 +46,23 @@ impl TcpExt for TcpStream {
         let mut buf = vec![0u8; msg_len];
         self.read_exact(&mut buf)?;
 
-        let data = postcard::from_bytes(&buf).map_err(|e| TcpError::Deserialize(e))?;
+        let data = postcard::from_bytes(&buf).map_err(TcpError::Deserialize)?;
 
         Ok(data)
+    }
+
+    fn try_receive<T: for<'a> Deserialize<'a> + std::fmt::Debug>(
+        &mut self,
+    ) -> Result<Option<T>, TcpError> {
+        // not nice
+        self.set_nonblocking(true)?;
+        let peek = self.peek(&mut [0u8; 1]);
+        self.set_nonblocking(false)?;
+        match peek {
+            Ok(0) => Ok(None),
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(None),
+            _ => self.receive().map(|res| Some(res)),
+        }
     }
 }
 

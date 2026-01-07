@@ -22,20 +22,31 @@ impl ClientDB {
         })
     }
 
-    fn send_and_receive(&self, query: Query) -> Result<Response, TcpError> {
-        self.stream.borrow_mut().send_and_receive(&query)
+    fn send_query(&self, query: impl Into<Query>) -> Result<(), TcpError> {
+        self.stream.borrow_mut().send(&query.into())
+    }
+
+    fn receive_response(&self) -> Result<Response, TcpError> {
+        self.stream.borrow_mut().receive()
     }
 }
 
 struct ResponseIter<'a, T> {
-    stream: &'a RefCell<TcpStream>,
+    stream: Option<&'a RefCell<TcpStream>>,
     _marker: PhantomData<T>,
 }
 
 impl<'a, T> ResponseIter<'a, T> {
-    fn new(stream: &'a RefCell<TcpStream>) -> Self {
+    fn new() -> Self {
         Self {
-            stream,
+            stream: None,
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    fn with_tcp_stream(stream: &'a RefCell<TcpStream>) -> Self {
+        Self {
+            stream: Some(stream),
             _marker: std::marker::PhantomData,
         }
     }
@@ -45,174 +56,141 @@ impl<'a, T> Iterator for ResponseIter<'a, T> {
     type Item = IterItemsResponse;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let response = self.stream.borrow_mut().receive();
+        let response = self.stream?.borrow_mut().receive();
         let Ok(response) = response else {
             return None;
         };
 
         match response {
             Response::IterItems(iter_response) => iter_response,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
-            }
+            _ => self.next(),
         }
     }
 }
 
 impl RebrickableDB for ClientDB {
     fn part_from_id(&self, id: &PartId) -> Option<Cow<'_, Part>> {
-        let query = Query::from(id.clone());
-        let response = self.send_and_receive(query);
-        let Ok(response) = response else {
-            return None;
-        };
-
-        match response {
-            Response::GetItem(GetItemResponse::Part(part), _) => Some(Cow::Owned(part)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
+        self.send_query(id.clone()).ok()?;
+        loop {
+            match self.receive_response() {
+                Ok(Response::GetItem(GetItemResponse::Part(part), _)) => {
+                    return Some(Cow::Owned(part));
+                }
+                Ok(Response::GetItem(GetItemResponse::NotFound, _)) | Err(_) => return None,
+                _ => {}
             }
         }
     }
 
     fn part_from_name(&self, name: &PartName) -> Option<Cow<'_, Part>> {
-        let query = Query::from(name.clone());
-        let response = self.send_and_receive(query);
-        let Ok(response) = response else {
-            return None;
-        };
-
-        match response {
-            Response::GetItem(GetItemResponse::Part(part), _) => Some(Cow::Owned(part)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
+        self.send_query(name.clone()).ok()?;
+        loop {
+            match self.receive_response() {
+                Ok(Response::GetItem(GetItemResponse::Part(part), _)) => {
+                    return Some(Cow::Owned(part));
+                }
+                Ok(Response::GetItem(GetItemResponse::NotFound, _)) | Err(_) => return None,
+                _ => {}
             }
         }
     }
 
     fn color_from_id(&self, id: &ColorId) -> Option<Cow<'_, Color>> {
-        let query = Query::from(*id);
-        let response = self.send_and_receive(query);
-        let Ok(response) = response else {
-            return None;
-        };
-
-        match response {
-            Response::GetItem(GetItemResponse::Color(color), _) => Some(Cow::Owned(color)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
+        self.send_query(*id).ok()?;
+        loop {
+            match self.receive_response() {
+                Ok(Response::GetItem(GetItemResponse::Color(color), _)) => {
+                    return Some(Cow::Owned(color));
+                }
+                Ok(Response::GetItem(GetItemResponse::NotFound, _)) | Err(_) => return None,
+                _ => {}
             }
         }
     }
 
     fn color_from_name(&self, name: &ColorName) -> Option<Cow<'_, Color>> {
-        let query = Query::from(name.clone());
-        let response = self.send_and_receive(query);
-        let Ok(response) = response else {
-            return None;
-        };
-
-        match response {
-            Response::GetItem(GetItemResponse::Color(color), _) => Some(Cow::Owned(color)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
+        self.send_query(name.clone()).ok()?;
+        loop {
+            match self.receive_response() {
+                Ok(Response::GetItem(GetItemResponse::Color(color), _)) => {
+                    return Some(Cow::Owned(color));
+                }
+                Ok(Response::GetItem(GetItemResponse::NotFound, _)) | Err(_) => return None,
+                _ => {}
             }
         }
     }
 
     fn element_from_id(&self, id: &ElementId) -> Option<Cow<'_, Element>> {
-        let query = Query::from(*id);
-        let response = self.send_and_receive(query);
-        let Ok(response) = response else {
-            return None;
-        };
-
-        match response {
-            Response::GetItem(GetItemResponse::Element(element), _) => Some(Cow::Owned(element)),
-            Response::GetItem(GetItemResponse::NotFound, _) => None,
-            response => {
-                eprintln!("Response: {:#?}", response);
-                panic!();
+        self.send_query(*id).ok()?;
+        loop {
+            match self.receive_response() {
+                Ok(Response::GetItem(GetItemResponse::Element(element), _)) => {
+                    return Some(Cow::Owned(element));
+                }
+                Ok(Response::GetItem(GetItemResponse::NotFound, _)) | Err(_) => return None,
+                _ => {}
             }
         }
     }
 
     fn iter_part_id(&self) -> impl Iterator<Item = Cow<'_, PartId>> {
-        let query = Query::Find(FindItem::PartId);
-        self.stream.borrow_mut().send(&query).unwrap();
-        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+        let iter = match self.send_query(FindItem::PartId) {
+            Ok(()) => ResponseIter::<IterItemsResponse>::with_tcp_stream(&self.stream),
+            Err(_) => ResponseIter::<IterItemsResponse>::new(),
+        };
 
-        iter.map(|element| match element {
-            IterItemsResponse::PartId(part_id) => Cow::Owned(part_id),
-            response_iter => {
-                eprintln!("ResponseIter: {:#?}", response_iter);
-                panic!();
-            }
+        iter.filter_map(|element| match element {
+            IterItemsResponse::PartId(part_id) => Some(Cow::Owned(part_id)),
+            _ => None,
         })
     }
 
     fn iter_part_name(&self) -> impl Iterator<Item = Cow<'_, PartName>> {
-        let query = Query::Find(FindItem::PartName);
-        self.stream.borrow_mut().send(&query).unwrap();
-        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+        let iter = match self.send_query(FindItem::PartName) {
+            Ok(()) => ResponseIter::<IterItemsResponse>::with_tcp_stream(&self.stream),
+            Err(_) => ResponseIter::<IterItemsResponse>::new(),
+        };
 
-        iter.map(|element| match element {
-            IterItemsResponse::PartName(part_name) => Cow::Owned(part_name),
-            response_iter => {
-                eprintln!("ResponseIter: {:#?}", response_iter);
-                panic!();
-            }
+        iter.filter_map(|element| match element {
+            IterItemsResponse::PartName(part_name) => Some(Cow::Owned(part_name)),
+            _ => None,
         })
     }
 
     fn iter_color_id(&self) -> impl Iterator<Item = Cow<'_, ColorId>> {
-        let query = Query::Find(FindItem::ColorId);
-        self.stream.borrow_mut().send(&query).unwrap();
-        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+        let iter = match self.send_query(FindItem::ColorId) {
+            Ok(()) => ResponseIter::<IterItemsResponse>::with_tcp_stream(&self.stream),
+            Err(_) => ResponseIter::<IterItemsResponse>::new(),
+        };
 
-        iter.map(|element| match element {
-            IterItemsResponse::ColorId(color_id) => Cow::Owned(color_id),
-            response_iter => {
-                eprintln!("ResponseIter: {:#?}", response_iter);
-                panic!();
-            }
+        iter.filter_map(|element| match element {
+            IterItemsResponse::ColorId(color_id) => Some(Cow::Owned(color_id)),
+            _ => None,
         })
     }
 
     fn iter_color_name(&self) -> impl Iterator<Item = Cow<'_, ColorName>> {
-        let query = Query::Find(FindItem::ColorName);
-        self.stream.borrow_mut().send(&query).unwrap();
-        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+        let iter = match self.send_query(FindItem::ColorName) {
+            Ok(()) => ResponseIter::<IterItemsResponse>::with_tcp_stream(&self.stream),
+            Err(_) => ResponseIter::<IterItemsResponse>::new(),
+        };
 
-        iter.map(|element| match element {
-            IterItemsResponse::ColorName(color_name) => Cow::Owned(color_name),
-            response_iter => {
-                eprintln!("ResponseIter: {:#?}", response_iter);
-                panic!();
-            }
+        iter.filter_map(|element| match element {
+            IterItemsResponse::ColorName(color_name) => Some(Cow::Owned(color_name)),
+            _ => None,
         })
     }
 
     fn iter_element_id(&self) -> impl Iterator<Item = Cow<'_, ElementId>> {
-        let query = Query::Find(FindItem::Element);
-        self.stream.borrow_mut().send(&query).unwrap();
-        let iter = ResponseIter::<IterItemsResponse>::new(&self.stream);
+        let iter = match self.send_query(FindItem::Element) {
+            Ok(()) => ResponseIter::<IterItemsResponse>::with_tcp_stream(&self.stream),
+            Err(_) => ResponseIter::<IterItemsResponse>::new(),
+        };
 
-        iter.map(|element| match element {
-            IterItemsResponse::ElementId(element_id) => Cow::Owned(element_id),
-            response_iter => {
-                eprintln!("ResponseIter: {:#?}", response_iter);
-                panic!();
-            }
+        iter.filter_map(|element| match element {
+            IterItemsResponse::ElementId(element_id) => Some(Cow::Owned(element_id)),
+            _ => None,
         })
     }
 }

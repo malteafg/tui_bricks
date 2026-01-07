@@ -9,7 +9,19 @@ use rebrickable_database::LocalDB;
 use rebrickable_server_api::query;
 use utils::PathExt;
 
-use std::{path::PathBuf, process::Command};
+use std::{
+    path::PathBuf,
+    process::{Child, Command},
+};
+
+struct KillProcess(Child);
+
+impl Drop for KillProcess {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
 
 pub fn run(args: cli::Args) {
     let query = match args.query {
@@ -39,7 +51,8 @@ pub fn run(args: cli::Args) {
 
     let mut sxiv_path = PathBuf::cache_dir();
     sxiv_path.push("displayed_image.png");
-    let mut sxiv = Command::new("sxiv").arg(sxiv_path).spawn().unwrap();
+    let sxiv = Command::new("sxiv").arg(sxiv_path).spawn().unwrap();
+    let _kill_sxiv = KillProcess(sxiv);
 
     match ClientDB::new() {
         Ok(database) => client::handle_query(&database, query),
@@ -48,6 +61,4 @@ pub fn run(args: cli::Args) {
             client::handle_query(&database, query);
         }
     }
-
-    sxiv.kill().unwrap();
 }
