@@ -1,3 +1,5 @@
+mod bricklink;
+
 use utils::DisplayShort;
 
 use serde::{Deserialize, Serialize};

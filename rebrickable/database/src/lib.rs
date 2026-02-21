@@ -137,19 +137,19 @@ impl LocalDB {
 impl Default for LocalDB {
     fn default() -> Self {
         let mut parts_path = PathBuf::data_dir();
-        parts_path.push("parts.csv");
+        parts_path.push("rebrickable/parts.csv");
 
         let mut colors_path = PathBuf::data_dir();
-        colors_path.push("colors.csv");
+        colors_path.push("rebrickable/colors.csv");
 
         let mut elements_path = PathBuf::data_dir();
-        elements_path.push("elements.csv");
+        elements_path.push("rebrickable/elements.csv");
 
         let mut relationships_path = PathBuf::data_dir();
-        relationships_path.push("part_relationships.csv");
+        relationships_path.push("rebrickable/part_relationships.csv");
 
         let mut categories_path = PathBuf::data_dir();
-        categories_path.push("part_categories.csv");
+        categories_path.push("rebrickable/part_categories.csv");
 
         LocalDB::new(
             &parts_path,
