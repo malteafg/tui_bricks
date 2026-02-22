@@ -1,4 +1,4 @@
-mod bricklink;
+pub mod bricklink;
 
 use utils::DisplayShort;
 

@@ -7,5 +7,3 @@ edition = "2024"
 utils = { workspace = true }
 
 serde = { workspace = true }
-
-quick-xml = { version = "0.39.2", features = ["serialize"] }

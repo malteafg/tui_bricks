@@ -2,12 +2,13 @@
 members = [
   "tui_bricks",
   "cli_tools/tui_bricks_update_image",
+  "cli_tools/bricklink_converter",
   "libs/utils",
   "rebrickable/client",
   "rebrickable/database",
   "rebrickable/database_api",
   "rebrickable/server",
-  "rebrickable/server_api", "tui_bricks2",
+  "rebrickable/server_api", "tui_bricks2", "cli_tools/bricklink_converter",
 ]
 default-members = [
   "tui_bricks",
@@ -35,3 +36,5 @@ rstest = { version = "0.26.*" }
 ctrlc = { version = "3.0.*" }
 thiserror = { version = "2.0.*" }
 derive_more = { version = "2.1.*", features = ["from"] }
+quick-xml = { version = "0.39.*", features = ["serialize"] }
+glob = "0.3.*"
